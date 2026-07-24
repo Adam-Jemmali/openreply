@@ -396,10 +396,15 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
       Boolean(automation.openingDmMessage) &&
       Boolean(automation.openingDmButtonLabel);
 
-    // Follow-gating takes precedence: send a "follow me first" prompt with a
-    // button. Tapping it fires a `followcheck:` postback where we verify follow
-    // status before revealing the link (see processPostback).
-    const useFollowGate = automation.requireFollow;
+    // Follow-gating takes precedence. Check up front whether the commenter
+    // already follows: confirmed followers skip the prompt and get the link
+    // now; everyone else (not following, or unverifiable) gets a "follow me
+    // first" prompt with a button, re-verified on tap (see processPostback).
+    let useFollowGate = automation.requireFollow;
+    if (automation.requireFollow) {
+      const alreadyFollows = await getUserFollowStatus(accessToken, commenterId);
+      if (alreadyFollows === true) useFollowGate = false;
+    }
 
     try {
       if (useFollowGate) {

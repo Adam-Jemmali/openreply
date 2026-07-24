@@ -499,7 +499,8 @@ describe("DM Worker — Full Pipeline", () => {
     );
   });
 
-  it("should send a follow-gate prompt instead of the link when requireFollow is on", async () => {
+  it("should send a follow-gate prompt when a non-follower comments", async () => {
+    mockGetUserFollowStatus.mockResolvedValue(false); // not following yet
     mockPrisma.automation.findMany.mockResolvedValue([
       {
         ...mockAutomation,
@@ -531,5 +532,39 @@ describe("DM Worker — Full Pipeline", () => {
     );
     expect(mockSendPrivateReplyWithLinkButton).not.toHaveBeenCalled();
     expect(mockSendPrivateReply).not.toHaveBeenCalled();
+  });
+
+  it("should skip the prompt and send the link when the commenter already follows", async () => {
+    mockGetUserFollowStatus.mockResolvedValue(true); // already following
+    mockPrisma.automation.findMany.mockResolvedValue([
+      {
+        ...mockAutomation,
+        requireFollow: true,
+        followPromptMessage: "Follow me first, then tap 👇",
+        followPromptButtonLabel: "I'm following ✅",
+        dmMessage: "Hey {username}! Here is the offer: {link}",
+        linkButtonLabel: "Get offer",
+        trackedLinks: [
+          {
+            slug: "abc123",
+            label: "Primary campaign link",
+            destinationUrl: "https://example.com",
+          },
+        ],
+      },
+    ]);
+
+    const processor = getProcessor();
+    await processor(createMockJob());
+
+    // Confirmed follower: no prompt, link delivered right away.
+    expect(mockSendPrivateReplyWithButton).not.toHaveBeenCalled();
+    expect(mockSendPrivateReplyWithLinkButton).toHaveBeenCalledWith(
+      "decrypted_token",
+      "ig_456",
+      "comment_555",
+      "Hey commenter_user! Here is the offer:",
+      [{ title: "Get offer", url: "http://localhost:3000/r/abc123" }]
+    );
   });
 });
