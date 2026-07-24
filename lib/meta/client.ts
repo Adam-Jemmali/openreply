@@ -203,17 +203,100 @@ export async function sendPrivateReplyWithButton(
 }
 
 /**
- * Send a private reply to a comment as a button template with a web_url button
- * — the reveal message plus a tappable link button (for campaigns with no
- * opening DM, where the reveal is delivered straight to the comment).
+ * Send a direct message (to a user's IGSID) as a button template with a single
+ * postback button. Used to re-prompt a user during follow-gating, so tapping
+ * the button fires another `messaging_postbacks` webhook carrying `payload`.
+ */
+export async function sendDirectMessageWithButton(
+  accessToken: string,
+  instagramAccountId: string,
+  userId: string,
+  text: string,
+  buttonTitle: string,
+  payload: string
+): Promise<{ recipient_id: string; message_id: string }> {
+  const response = await fetch(
+    `${instagramGraphBase()}/${instagramAccountId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        recipient: { id: userId },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "button",
+              text: text.slice(0, 640),
+              buttons: [
+                { type: "postback", title: buttonTitle.slice(0, 20), payload },
+              ],
+            },
+          },
+        },
+      }),
+    }
+  );
+
+  return handleResponse(response);
+}
+
+/**
+ * Check whether a user (by their IGSID) follows the business account, via the
+ * Instagram Messaging profile API. Available for users in an active
+ * conversation (e.g. after a private reply or a button tap). Returns true or
+ * false, or `null` when Meta does not return the field — so callers can decide
+ * how to treat the unverifiable case.
+ */
+export async function getUserFollowStatus(
+  accessToken: string,
+  recipientId: string
+): Promise<boolean | null> {
+  const url = new URL(`${instagramGraphBase()}/${recipientId}`);
+  url.searchParams.set("fields", "is_user_follow_business");
+  url.searchParams.set("access_token", accessToken);
+
+  try {
+    const response = await fetch(url.toString(), { method: "GET" });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return typeof data?.is_user_follow_business === "boolean"
+      ? data.is_user_follow_business
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A tappable web_url button in a DM button template. Instagram's button
+ * template supports up to 3 buttons; titles are capped at 20 chars by Meta.
+ */
+export interface LinkButton {
+  title: string;
+  url: string;
+}
+
+function toWebUrlButtons(buttons: LinkButton[]) {
+  return buttons
+    .slice(0, 3)
+    .map((b) => ({ type: "web_url", url: b.url, title: b.title.slice(0, 20) }));
+}
+
+/**
+ * Send a private reply to a comment as a button template with up to 3 web_url
+ * buttons — the reveal message plus tappable link buttons (for campaigns with
+ * no opening DM, where the reveal is delivered straight to the comment).
  */
 export async function sendPrivateReplyWithLinkButton(
   accessToken: string,
   instagramAccountId: string,
   commentId: string,
   text: string,
-  buttonTitle: string,
-  url: string
+  buttons: LinkButton[]
 ): Promise<{ recipient_id: string; message_id: string }> {
   const response = await fetch(
     `${instagramGraphBase()}/${instagramAccountId}/messages`,
@@ -231,7 +314,7 @@ export async function sendPrivateReplyWithLinkButton(
             payload: {
               template_type: "button",
               text: text.slice(0, 640),
-              buttons: [{ type: "web_url", url, title: buttonTitle.slice(0, 20) }],
+              buttons: toWebUrlButtons(buttons),
             },
           },
         },
@@ -271,16 +354,15 @@ export async function sendDirectMessage(
 }
 
 /**
- * Send a direct message as a button template with a single web_url button —
- * the reveal message plus a tappable link button (cleaner than an inline URL).
+ * Send a direct message as a button template with up to 3 web_url buttons —
+ * the reveal message plus tappable link buttons (cleaner than inline URLs).
  */
 export async function sendDirectMessageWithLinkButton(
   accessToken: string,
   instagramAccountId: string,
   userId: string,
   text: string,
-  buttonTitle: string,
-  url: string
+  buttons: LinkButton[]
 ): Promise<{ recipient_id: string; message_id: string }> {
   const response = await fetch(
     `${instagramGraphBase()}/${instagramAccountId}/messages`,
@@ -298,7 +380,7 @@ export async function sendDirectMessageWithLinkButton(
             payload: {
               template_type: "button",
               text: text.slice(0, 640),
-              buttons: [{ type: "web_url", url, title: buttonTitle.slice(0, 20) }],
+              buttons: toWebUrlButtons(buttons),
             },
           },
         },

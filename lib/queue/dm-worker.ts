@@ -10,8 +10,10 @@ import {
 import { prisma } from "@/lib/db/client";
 import {
   MetaApiError,
+  getUserFollowStatus,
   sendCommentReply,
   sendDirectMessage,
+  sendDirectMessageWithButton,
   sendDirectMessageWithLinkButton,
   sendPrivateReply,
   sendPrivateReplyWithButton,
@@ -43,6 +45,45 @@ function formatError(error: unknown): string {
   return "Unknown error";
 }
 
+type WorkerTrackedLink = {
+  slug: string;
+  label: string | null;
+  destinationUrl: string;
+};
+
+/**
+ * Build the tappable link buttons for a DM. The first link uses the campaign's
+ * `linkButtonLabel`; each additional link uses its own stored `label`. Capped at
+ * Meta's 3-button limit for a button template.
+ */
+function buildLinkButtons(
+  trackedLinks: WorkerTrackedLink[],
+  primaryLabel: string | null
+): { title: string; url: string }[] {
+  return trackedLinks.slice(0, 3).map((link, index) => ({
+    url: buildTrackedUrl(link.slug),
+    title: (index === 0 ? primaryLabel : link.label) || link.label || "Open link",
+  }));
+}
+
+/**
+ * Fallback text when Meta rejects the button template: render the primary link
+ * inline, then append any extra tracked URLs on their own lines so no link is
+ * lost.
+ */
+function buildInlineLinkFallback(
+  message: string,
+  commenterName: string | null | undefined,
+  trackedLinks: WorkerTrackedLink[],
+  bodyText: string
+): string {
+  const base =
+    renderMessageWithTracking({ message, commenterName, trackedLinks }) ||
+    bodyText;
+  const extraUrls = trackedLinks.slice(1).map((link) => buildTrackedUrl(link.slug));
+  return extraUrls.length > 0 ? `${base}\n${extraUrls.join("\n")}` : base;
+}
+
 async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
   const {
     instagramAccountId,
@@ -69,6 +110,7 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
       trackedLinks: {
         select: {
           slug: true,
+          label: true,
           destinationUrl: true,
         },
         orderBy: { createdAt: "asc" },
@@ -354,8 +396,28 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
       Boolean(automation.openingDmMessage) &&
       Boolean(automation.openingDmButtonLabel);
 
+    // Follow-gating takes precedence: send a "follow me first" prompt with a
+    // button. Tapping it fires a `followcheck:` postback where we verify follow
+    // status before revealing the link (see processPostback).
+    const useFollowGate = automation.requireFollow;
+
     try {
-      if (useOpeningDm) {
+      if (useFollowGate) {
+        const promptText = renderMessageWithoutLink({
+          message:
+            automation.followPromptMessage ||
+            "Almost there! Follow me and tap the button below to grab your link 💛",
+          commenterName,
+        });
+        await sendPrivateReplyWithButton(
+          accessToken,
+          automation.instagramAccount.instagramId,
+          commentId,
+          promptText,
+          automation.followPromptButtonLabel || "I'm following ✅",
+          `followcheck:${automation.id}`
+        );
+      } else if (useOpeningDm) {
         const openingText = renderMessageWithTracking({
           message: automation.openingDmMessage as string,
           commenterName,
@@ -369,14 +431,17 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
           automation.openingDmButtonLabel as string,
           `reveal:${automation.id}`
         );
-      } else if (automation.trackedLinks[0]) {
-        // Try button template first; if Meta rejects it, fall back to inline link.
+      } else if (automation.trackedLinks.length > 0) {
+        // Try button template first; if Meta rejects it, fall back to inline links.
         const bodyText =
           renderMessageWithoutLink({
             message: automation.dmMessage,
             commenterName,
           }) || "Here's your link:";
-        const trackedUrl = buildTrackedUrl(automation.trackedLinks[0].slug);
+        const buttons = buildLinkButtons(
+          automation.trackedLinks,
+          automation.linkButtonLabel
+        );
 
         try {
           await sendPrivateReplyWithLinkButton(
@@ -384,21 +449,20 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
             automation.instagramAccount.instagramId,
             commentId,
             bodyText,
-            automation.linkButtonLabel || "Open link",
-            trackedUrl
+            buttons
           );
         } catch (buttonError) {
-          // Button template rejected; send as text with inline link instead.
+          // Button template rejected; send as text with inline links instead.
           console.log(
             "[DM Worker] Button template rejected, falling back to inline link:",
             formatError(buttonError)
           );
-          const fallbackMessage =
-            renderMessageWithTracking({
-              message: automation.dmMessage,
-              commenterName,
-              trackedLinks: [automation.trackedLinks[0]],
-            }) || `${bodyText}\n${trackedUrl}`;
+          const fallbackMessage = buildInlineLinkFallback(
+            automation.dmMessage,
+            commenterName,
+            automation.trackedLinks,
+            bodyText
+          );
           await sendPrivateReply(
             accessToken,
             automation.instagramAccount.instagramId,
@@ -465,8 +529,11 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
 async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
   const { instagramAccountId, userId, payload } = job.data;
 
-  if (!payload.startsWith("reveal:")) return;
-  const automationId = payload.slice("reveal:".length);
+  const isFollowCheck = payload.startsWith("followcheck:");
+  if (!isFollowCheck && !payload.startsWith("reveal:")) return;
+  const automationId = payload.slice(
+    isFollowCheck ? "followcheck:".length : "reveal:".length
+  );
 
   const automation = await prisma.automation.findFirst({
     where: { id: automationId, isActive: true },
@@ -474,7 +541,7 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
       instagramAccount: true,
       workspace: true,
       trackedLinks: {
-        select: { slug: true, destinationUrl: true },
+        select: { slug: true, label: true, destinationUrl: true },
         orderBy: { createdAt: "asc" },
       },
     },
@@ -506,6 +573,38 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
     return;
   }
 
+  // Follow-gate: on a `followcheck:` tap, verify the user follows before
+  // revealing the link. Not following → re-send the prompt and stop (no quota
+  // spent). Following, or unverifiable (null), falls through and delivers the
+  // link — fail-open so a real follower is never trapped.
+  if (isFollowCheck && automation.requireFollow) {
+    const follows = await getUserFollowStatus(accessToken, userId);
+    if (follows === false) {
+      const promptText = renderMessageWithoutLink({
+        message:
+          automation.followPromptMessage ||
+          "Almost there! Follow me and tap the button below to grab your link 💛",
+        commenterName,
+      });
+      try {
+        await sendDirectMessageWithButton(
+          accessToken,
+          automation.instagramAccount.instagramId,
+          userId,
+          promptText,
+          automation.followPromptButtonLabel || "I'm following ✅",
+          `followcheck:${automation.id}`
+        );
+      } catch (error) {
+        console.log(
+          "[DM Worker] Failed to re-send follow prompt:",
+          formatError(error)
+        );
+      }
+      return;
+    }
+  }
+
   const usage = await reserveWorkspaceDMSend(automation.workspaceId);
   if (!usage.allowed) {
     await prisma.dmLog.upsert({
@@ -528,17 +627,18 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
     return;
   }
 
-  const primaryLink = automation.trackedLinks[0];
-
   try {
-    if (primaryLink) {
-      // Try button template first; if Meta rejects it, fall back to inline link.
+    if (automation.trackedLinks.length > 0) {
+      // Try button template first; if Meta rejects it, fall back to inline links.
       const bodyText =
         renderMessageWithoutLink({
           message: automation.dmMessage,
           commenterName,
         }) || "Here's your link:";
-      const trackedUrl = buildTrackedUrl(primaryLink.slug);
+      const buttons = buildLinkButtons(
+        automation.trackedLinks,
+        automation.linkButtonLabel
+      );
 
       try {
         await sendDirectMessageWithLinkButton(
@@ -546,21 +646,20 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
           automation.instagramAccount.instagramId,
           userId,
           bodyText,
-          automation.linkButtonLabel || "Open link",
-          trackedUrl
+          buttons
         );
       } catch (buttonError) {
-        // Button template rejected; send as text with inline link instead.
+        // Button template rejected; send as text with inline links instead.
         console.log(
           "[DM Worker] Button template rejected in postback, falling back to inline link:",
           formatError(buttonError)
         );
-        const fallbackMessage =
-          renderMessageWithTracking({
-            message: automation.dmMessage,
-            commenterName,
-            trackedLinks: [primaryLink],
-          }) || `${bodyText}\n${trackedUrl}`;
+        const fallbackMessage = buildInlineLinkFallback(
+          automation.dmMessage,
+          commenterName,
+          automation.trackedLinks,
+          bodyText
+        );
         await sendDirectMessage(
           accessToken,
           automation.instagramAccount.instagramId,

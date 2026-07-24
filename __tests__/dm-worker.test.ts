@@ -4,6 +4,9 @@ const {
   mockPrisma,
   mockSendPrivateReply,
   mockSendPrivateReplyWithLinkButton,
+  mockSendPrivateReplyWithButton,
+  mockGetUserFollowStatus,
+  mockSendDirectMessageWithButton,
   mockDecryptToken,
   mockMatchKeywords,
   mockReserveDMSlot,
@@ -19,6 +22,7 @@ const {
       findUnique: vi.fn(),
       upsert: vi.fn(),
       update: vi.fn(),
+      create: vi.fn(),
     },
     instagramAccount: {
       findUnique: vi.fn(),
@@ -29,6 +33,9 @@ const {
   },
   mockSendPrivateReply: vi.fn(),
   mockSendPrivateReplyWithLinkButton: vi.fn(),
+  mockSendPrivateReplyWithButton: vi.fn(),
+  mockGetUserFollowStatus: vi.fn(),
+  mockSendDirectMessageWithButton: vi.fn(),
   mockDecryptToken: vi.fn(),
   mockMatchKeywords: vi.fn(),
   mockReserveDMSlot: vi.fn(),
@@ -44,7 +51,9 @@ vi.mock("@/lib/db/client", () => ({
 vi.mock("@/lib/meta/client", () => ({
   sendPrivateReply: mockSendPrivateReply,
   sendPrivateReplyWithLinkButton: mockSendPrivateReplyWithLinkButton,
-  sendPrivateReplyWithButton: vi.fn(),
+  sendPrivateReplyWithButton: mockSendPrivateReplyWithButton,
+  getUserFollowStatus: mockGetUserFollowStatus,
+  sendDirectMessageWithButton: mockSendDirectMessageWithButton,
   sendDirectMessage: vi.fn(),
   sendDirectMessageWithLinkButton: vi.fn(),
   sendCommentReply: vi.fn(),
@@ -206,6 +215,15 @@ beforeEach(() => {
     recipient_id: "commenter_999",
     message_id: "msg_002",
   });
+  mockSendPrivateReplyWithButton.mockResolvedValue({
+    recipient_id: "commenter_999",
+    message_id: "msg_003",
+  });
+  mockSendDirectMessageWithButton.mockResolvedValue({
+    recipient_id: "commenter_999",
+    message_id: "msg_004",
+  });
+  mockGetUserFollowStatus.mockResolvedValue(true);
 });
 
 describe("DM Worker — Full Pipeline", () => {
@@ -226,6 +244,7 @@ describe("DM Worker — Full Pipeline", () => {
         trackedLinks: {
           select: {
             slug: true,
+            label: true,
             destinationUrl: true,
           },
           orderBy: { createdAt: "asc" },
@@ -340,7 +359,7 @@ describe("DM Worker — Full Pipeline", () => {
       }),
       expect.objectContaining({
         delay: 1800000,
-        jobId: "comment:ig_456:comment_555:retry:1",
+        jobId: "comment_ig_456_comment_555_retry_1",
       })
     );
   });
@@ -442,7 +461,7 @@ describe("DM Worker — Full Pipeline", () => {
     );
   });
 
-  it("should deliver tracked links as a web_url button", async () => {
+  it("should deliver tracked links as web_url buttons (one or two)", async () => {
     mockPrisma.automation.findMany.mockResolvedValue([
       {
         ...mockAutomation,
@@ -451,6 +470,46 @@ describe("DM Worker — Full Pipeline", () => {
         trackedLinks: [
           {
             slug: "abc123",
+            label: "Primary campaign link",
+            destinationUrl: "https://example.com",
+          },
+          {
+            slug: "def456",
+            label: "Book a call",
+            destinationUrl: "https://example.com/book",
+          },
+        ],
+      },
+    ]);
+
+    const processor = getProcessor();
+    await processor(createMockJob());
+
+    // Primary button title comes from linkButtonLabel; the second from its
+    // own stored label. Both point at their tracked /r/<slug> URLs.
+    expect(mockSendPrivateReplyWithLinkButton).toHaveBeenCalledWith(
+      "decrypted_token",
+      "ig_456",
+      "comment_555",
+      "Hey commenter_user! Here is the offer:",
+      [
+        { title: "Get offer", url: "http://localhost:3000/r/abc123" },
+        { title: "Book a call", url: "http://localhost:3000/r/def456" },
+      ]
+    );
+  });
+
+  it("should send a follow-gate prompt instead of the link when requireFollow is on", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([
+      {
+        ...mockAutomation,
+        requireFollow: true,
+        followPromptMessage: "Follow me first {username}, then tap 👇",
+        followPromptButtonLabel: "I'm following ✅",
+        trackedLinks: [
+          {
+            slug: "abc123",
+            label: "Primary campaign link",
             destinationUrl: "https://example.com",
           },
         ],
@@ -460,13 +519,17 @@ describe("DM Worker — Full Pipeline", () => {
     const processor = getProcessor();
     await processor(createMockJob());
 
-    expect(mockSendPrivateReplyWithLinkButton).toHaveBeenCalledWith(
+    // The follow prompt goes out with a `followcheck:` postback button; the
+    // link is NOT delivered yet.
+    expect(mockSendPrivateReplyWithButton).toHaveBeenCalledWith(
       "decrypted_token",
       "ig_456",
       "comment_555",
-      "Hey commenter_user! Here is the offer:",
-      "Get offer",
-      "http://localhost:3000/r/abc123"
+      "Follow me first commenter_user, then tap 👇",
+      "I'm following ✅",
+      "followcheck:auto_789"
     );
+    expect(mockSendPrivateReplyWithLinkButton).not.toHaveBeenCalled();
+    expect(mockSendPrivateReply).not.toHaveBeenCalled();
   });
 });
