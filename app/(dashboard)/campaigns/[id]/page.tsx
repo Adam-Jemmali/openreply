@@ -27,13 +27,16 @@ interface Campaign {
   openingDmMessage: string | null;
   openingDmButtonLabel: string | null;
   linkButtonLabel: string | null;
+  requireFollow: boolean;
+  followPromptMessage: string | null;
+  followPromptButtonLabel: string | null;
   publicReplyEnabled: boolean;
   publicReplyMessage: string | null;
   publicReplyMessages: string[];
   isActive: boolean;
   instagramAccountId: string;
   instagramAccount: { username: string };
-  trackedLinks?: { destinationUrl: string }[];
+  trackedLinks?: { destinationUrl: string; label?: string | null }[];
   analytics: {
     sent: number;
     skipped: number;
@@ -138,6 +141,7 @@ export default function CampaignDetailPage() {
         ? [campaign.publicReplyMessage]
         : [];
   const hasLink = Boolean(campaign.trackedLinks?.[0]?.destinationUrl);
+  const hasSecondLink = Boolean(campaign.trackedLinks?.[1]?.destinationUrl);
 
   const trigger = campaign.matchAnyPost
     ? "Any post or reel"
@@ -217,10 +221,27 @@ export default function CampaignDetailPage() {
           </Summary>
         )}
 
+        {campaign.requireFollow && (
+          <Summary title="They must follow first">
+            <FieldBox>
+              {campaign.followPromptMessage ||
+                "Almost there! Follow me and tap the button below to grab your link 💛"}
+            </FieldBox>
+            <FieldBox>
+              {campaign.followPromptButtonLabel || "I'm following ✅"}
+            </FieldBox>
+          </Summary>
+        )}
+
         <Summary title="And then, they will get a DM">
           <FieldBox>{campaign.dmMessage}</FieldBox>
           {hasLink && (
             <FieldBox>{campaign.linkButtonLabel || "Open link"}</FieldBox>
+          )}
+          {hasSecondLink && (
+            <FieldBox>
+              {campaign.trackedLinks?.[1]?.label || "Open link"}
+            </FieldBox>
           )}
         </Summary>
       </div>
@@ -288,6 +309,15 @@ export default function CampaignDetailPage() {
             revealMessage={campaign.dmMessage}
             hasLink={hasLink}
             linkButtonLabel={campaign.linkButtonLabel ?? "Open link"}
+            hasSecondLink={hasSecondLink}
+            secondLinkButtonLabel={
+              campaign.trackedLinks?.[1]?.label ?? "Open link"
+            }
+            requireFollow={campaign.requireFollow}
+            followPromptMessage={campaign.followPromptMessage ?? ""}
+            followPromptButtonLabel={
+              campaign.followPromptButtonLabel ?? "I'm following ✅"
+            }
           />
           </div>
         )}

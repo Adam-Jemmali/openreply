@@ -918,6 +918,13 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             revealMessage={dmMessage}
             hasLink={Boolean(trackedDestinationUrl.trim())}
             linkButtonLabel={linkButtonLabel || "Open link"}
+            hasSecondLink={
+              secondLinkOpen && Boolean(secondaryDestinationUrl.trim())
+            }
+            secondLinkButtonLabel={secondaryButtonLabel || "Open link"}
+            requireFollow={requireFollow}
+            followPromptMessage={followPromptMessage}
+            followPromptButtonLabel={followPromptButtonLabel || "I'm following ✅"}
           />
         </div>
       </div>
