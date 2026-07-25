@@ -567,4 +567,40 @@ describe("DM Worker — Full Pipeline", () => {
       [{ title: "Get offer", url: "http://localhost:3000/r/abc123" }]
     );
   });
+
+  it("should send the opening DM first (routing to the follow check) when both opening DM and follow-gate are on", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([
+      {
+        ...mockAutomation,
+        openingDmEnabled: true,
+        openingDmMessage: "Hey {username}, welcome!",
+        openingDmButtonLabel: "Get the link",
+        requireFollow: true,
+        followPromptButtonLabel: "I'm following ✅",
+        trackedLinks: [
+          {
+            slug: "abc123",
+            label: "Primary campaign link",
+            destinationUrl: "https://example.com",
+          },
+        ],
+      },
+    ]);
+
+    const processor = getProcessor();
+    await processor(createMockJob());
+
+    // Opening DM goes out first; its button routes into the follow check.
+    expect(mockSendPrivateReplyWithButton).toHaveBeenCalledWith(
+      "decrypted_token",
+      "ig_456",
+      "comment_555",
+      "Hey commenter_user, welcome!",
+      "Get the link",
+      "followcheck:auto_789"
+    );
+    // Follow status is verified on the tap, not at comment time.
+    expect(mockGetUserFollowStatus).not.toHaveBeenCalled();
+    expect(mockSendPrivateReplyWithLinkButton).not.toHaveBeenCalled();
+  });
 });

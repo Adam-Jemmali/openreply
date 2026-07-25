@@ -331,6 +331,24 @@ function DmScreen({
       </div>
 
       <div className="flex-1 space-y-3 px-3 py-4">
+        {openingDmEnabled && (
+          <>
+            <div className="flex items-end gap-2">
+              <Avatar url={avatarUrl} size={24} />
+              <div className="max-w-[80%] overflow-hidden rounded-2xl rounded-bl-md bg-zinc-800">
+                <p className="whitespace-pre-wrap px-3 py-2 text-sm">{openingDmMessage || "Your opening message…"}</p>
+                <div className="mx-1.5 mb-1.5 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
+                  {openingDmButtonLabel || "Button label"}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <div className="rounded-2xl rounded-br-md bg-accent px-3 py-2 text-sm">
+                {openingDmButtonLabel || "Button label"}
+              </div>
+            </div>
+          </>
+        )}
         {requireFollow && (
           <>
             <div className="flex items-end gap-2">
@@ -348,24 +366,6 @@ function DmScreen({
             <div className="flex justify-end">
               <div className="rounded-2xl rounded-br-md bg-accent px-3 py-2 text-sm">
                 {followPromptButtonLabel || "I'm following ✅"}
-              </div>
-            </div>
-          </>
-        )}
-        {openingDmEnabled && (
-          <>
-            <div className="flex items-end gap-2">
-              <Avatar url={avatarUrl} size={24} />
-              <div className="max-w-[80%] overflow-hidden rounded-2xl rounded-bl-md bg-zinc-800">
-                <p className="whitespace-pre-wrap px-3 py-2 text-sm">{openingDmMessage || "Your opening message…"}</p>
-                <div className="mx-1.5 mb-1.5 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
-                  {openingDmButtonLabel || "Button label"}
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <div className="rounded-2xl rounded-br-md bg-accent px-3 py-2 text-sm">
-                {openingDmButtonLabel || "Button label"}
               </div>
             </div>
           </>

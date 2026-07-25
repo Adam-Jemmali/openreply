@@ -396,18 +396,35 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
       Boolean(automation.openingDmMessage) &&
       Boolean(automation.openingDmButtonLabel);
 
-    // Follow-gating takes precedence. Check up front whether the commenter
-    // already follows: confirmed followers skip the prompt and get the link
-    // now; everyone else (not following, or unverifiable) gets a "follow me
-    // first" prompt with a button, re-verified on tap (see processPostback).
-    let useFollowGate = automation.requireFollow;
-    if (automation.requireFollow) {
+    // Follow-gating: the link is revealed only after a follow. When an opening
+    // DM is enabled it comes FIRST, and its button routes into the follow check
+    // (opening DM → follow gate → link). Without an opening DM, we check follow
+    // status at comment time: confirmed followers get the link now, everyone
+    // else gets the "follow me first" prompt (re-verified on tap).
+    let sendFollowPrompt = false;
+    if (automation.requireFollow && !useOpeningDm) {
       const alreadyFollows = await getUserFollowStatus(accessToken, commenterId);
-      if (alreadyFollows === true) useFollowGate = false;
+      sendFollowPrompt = alreadyFollows !== true;
     }
 
     try {
-      if (useFollowGate) {
+      if (useOpeningDm) {
+        const openingText = renderMessageWithTracking({
+          message: automation.openingDmMessage as string,
+          commenterName,
+          trackedLinks: [],
+        });
+        await sendPrivateReplyWithButton(
+          accessToken,
+          automation.instagramAccount.instagramId,
+          commentId,
+          openingText,
+          automation.openingDmButtonLabel as string,
+          automation.requireFollow
+            ? `followcheck:${automation.id}`
+            : `reveal:${automation.id}`
+        );
+      } else if (sendFollowPrompt) {
         const promptText = renderMessageWithoutLink({
           message:
             automation.followPromptMessage ||
@@ -421,20 +438,6 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
           promptText,
           automation.followPromptButtonLabel || "I'm following ✅",
           `followcheck:${automation.id}`
-        );
-      } else if (useOpeningDm) {
-        const openingText = renderMessageWithTracking({
-          message: automation.openingDmMessage as string,
-          commenterName,
-          trackedLinks: [],
-        });
-        await sendPrivateReplyWithButton(
-          accessToken,
-          automation.instagramAccount.instagramId,
-          commentId,
-          openingText,
-          automation.openingDmButtonLabel as string,
-          `reveal:${automation.id}`
         );
       } else if (automation.trackedLinks.length > 0) {
         // Try button template first; if Meta rejects it, fall back to inline links.
