@@ -7,6 +7,8 @@ const {
   mockSendPrivateReplyWithButton,
   mockGetUserFollowStatus,
   mockSendDirectMessageWithButton,
+  mockSendDirectMessage,
+  mockSendDirectMessageWithLinkButton,
   mockDecryptToken,
   mockMatchKeywords,
   mockReserveDMSlot,
@@ -17,9 +19,11 @@ const {
   mockPrisma: {
     automation: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
     },
     dmLog: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       upsert: vi.fn(),
       update: vi.fn(),
       create: vi.fn(),
@@ -36,6 +40,8 @@ const {
   mockSendPrivateReplyWithButton: vi.fn(),
   mockGetUserFollowStatus: vi.fn(),
   mockSendDirectMessageWithButton: vi.fn(),
+  mockSendDirectMessage: vi.fn(),
+  mockSendDirectMessageWithLinkButton: vi.fn(),
   mockDecryptToken: vi.fn(),
   mockMatchKeywords: vi.fn(),
   mockReserveDMSlot: vi.fn(),
@@ -54,8 +60,8 @@ vi.mock("@/lib/meta/client", () => ({
   sendPrivateReplyWithButton: mockSendPrivateReplyWithButton,
   getUserFollowStatus: mockGetUserFollowStatus,
   sendDirectMessageWithButton: mockSendDirectMessageWithButton,
-  sendDirectMessage: vi.fn(),
-  sendDirectMessageWithLinkButton: vi.fn(),
+  sendDirectMessage: mockSendDirectMessage,
+  sendDirectMessageWithLinkButton: mockSendDirectMessageWithLinkButton,
   sendCommentReply: vi.fn(),
   MetaApiError: class MetaApiError extends Error {
     code: number;
@@ -157,13 +163,15 @@ const mockJobData = {
 };
 
 function getProcessor(): (job: {
-  data: typeof mockJobData;
+  name?: string;
+  data: typeof mockJobData | Record<string, unknown>;
   id: string;
   attemptsMade: number;
 }) => Promise<void> {
   createDMWorker();
   return (global as Record<string, unknown>).__dmWorkerProcessor as (job: {
-    data: typeof mockJobData;
+    name?: string;
+    data: typeof mockJobData | Record<string, unknown>;
     id: string;
     attemptsMade: number;
   }) => Promise<void>;
@@ -177,11 +185,30 @@ function createMockJob(data = mockJobData) {
   };
 }
 
+function createMockPostbackJob(
+  data: Record<string, unknown> = {
+    instagramAccountId: "ig_456",
+    userId: "commenter_999",
+    payload: "reveal:auto_789",
+  }
+) {
+  return {
+    name: "process-postback",
+    data,
+    id: "postback_job_001",
+    attemptsMade: 0,
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 
   mockPrisma.automation.findMany.mockResolvedValue([mockAutomation]);
+  mockPrisma.automation.findFirst.mockResolvedValue(null);
   mockPrisma.dmLog.findUnique.mockResolvedValue(null);
+  mockPrisma.dmLog.findFirst.mockResolvedValue({
+    commenterName: "commenter_user",
+  });
   mockPrisma.dmLog.upsert.mockResolvedValue({});
   mockPrisma.dmLog.update.mockResolvedValue({});
   mockPrisma.instagramAccount.findUnique.mockResolvedValue({
@@ -222,6 +249,14 @@ beforeEach(() => {
   mockSendDirectMessageWithButton.mockResolvedValue({
     recipient_id: "commenter_999",
     message_id: "msg_004",
+  });
+  mockSendDirectMessage.mockResolvedValue({
+    recipient_id: "commenter_999",
+    message_id: "msg_005",
+  });
+  mockSendDirectMessageWithLinkButton.mockResolvedValue({
+    recipient_id: "commenter_999",
+    message_id: "msg_006",
   });
   mockGetUserFollowStatus.mockResolvedValue(true);
 });
@@ -602,5 +637,91 @@ describe("DM Worker — Full Pipeline", () => {
     // Follow status is verified on the tap, not at comment time.
     expect(mockGetUserFollowStatus).not.toHaveBeenCalled();
     expect(mockSendPrivateReplyWithLinkButton).not.toHaveBeenCalled();
+  });
+
+  it("should deliver the next DM from a read fallback when no button tap has sent it yet", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([]);
+    mockPrisma.automation.findFirst.mockResolvedValue({
+      ...mockAutomation,
+      trackedLinks: [],
+    });
+
+    const processor = getProcessor();
+    await processor(
+      createMockPostbackJob({
+        instagramAccountId: "ig_456",
+        userId: "commenter_999",
+        payload: "reveal:auto_789",
+        fallback: true,
+      })
+    );
+
+    expect(mockPrisma.dmLog.findUnique).toHaveBeenCalledWith({
+      where: {
+        automationId_commentId: {
+          automationId: "auto_789",
+          commentId: "reveal:commenter_999",
+        },
+      },
+    });
+    expect(mockSendDirectMessage).toHaveBeenCalledWith(
+      "decrypted_token",
+      "ig_456",
+      "commenter_999",
+      "Hey commenter_user! Here is the link: https://example.com"
+    );
+  });
+
+  it("should not deliver a read fallback when the button tap already sent the reveal", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([]);
+    mockPrisma.automation.findFirst.mockResolvedValue({
+      ...mockAutomation,
+      trackedLinks: [],
+    });
+    mockPrisma.dmLog.findUnique.mockResolvedValue({
+      id: "existing_reveal",
+      status: "SENT",
+    });
+
+    const processor = getProcessor();
+    await processor(
+      createMockPostbackJob({
+        instagramAccountId: "ig_456",
+        userId: "commenter_999",
+        payload: "reveal:auto_789",
+        fallback: true,
+      })
+    );
+
+    expect(mockSendDirectMessage).not.toHaveBeenCalled();
+    expect(mockReserveWorkspaceDMSend).not.toHaveBeenCalled();
+  });
+
+  it("should skip follow-gating for a read fallback and send the next DM", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([]);
+    mockPrisma.automation.findFirst.mockResolvedValue({
+      ...mockAutomation,
+      requireFollow: true,
+      trackedLinks: [],
+    });
+    mockGetUserFollowStatus.mockResolvedValue(false);
+
+    const processor = getProcessor();
+    await processor(
+      createMockPostbackJob({
+        instagramAccountId: "ig_456",
+        userId: "commenter_999",
+        payload: "reveal:auto_789",
+        fallback: true,
+      })
+    );
+
+    expect(mockGetUserFollowStatus).not.toHaveBeenCalled();
+    expect(mockSendDirectMessage).toHaveBeenCalledWith(
+      "decrypted_token",
+      "ig_456",
+      "commenter_999",
+      "Hey commenter_user! Here is the link: https://example.com"
+    );
   });
 });
