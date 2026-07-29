@@ -171,7 +171,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
   const [requireFollow, setRequireFollow] = useState(false);
   const [followPromptMessage, setFollowPromptMessage] = useState("");
   const [followPromptButtonLabel, setFollowPromptButtonLabel] =
-    useState("I'm following ✅");
+    useState("i'm following");
 
   const [previewTab, setPreviewTab] = useState<PreviewTab>("dm");
 
@@ -274,7 +274,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
         setRequireFollow(c.requireFollow ?? false);
         setFollowPromptMessage(c.followPromptMessage ?? "");
         setFollowPromptButtonLabel(
-          c.followPromptButtonLabel ?? "I'm following ✅"
+          c.followPromptButtonLabel ?? "i'm following"
         );
       })
       .catch(() => setNotFound(true))
@@ -409,7 +409,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
       requireFollow,
       followPromptMessage: requireFollow ? followPromptMessage.trim() : "",
       followPromptButtonLabel: requireFollow
-        ? followPromptButtonLabel.trim() || "I'm following ✅"
+        ? followPromptButtonLabel.trim() || "i'm following"
         : "",
       isActive: activeValue,
     };
@@ -807,7 +807,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                 <textarea
                   value={followPromptMessage}
                   onChange={(e) => setFollowPromptMessage(e.target.value)}
-                  placeholder="Quick favor before I send your link: I don't make any money from this — it's free and always will be. If it helps you, the best support is a follow that sticks (no follow-and-dash 😅) and a star on the GitHub repo. Tap the button once you're following and your link is on the way 👇"
+                  placeholder="quick favor before i send your link. i don't make any money from this, it's free. if you want to support me, just don't unfollow after, and star the repo on github if it helps you. tap the button once you're following and i'll send it over"
                   rows={3}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
                   maxLength={1000}
@@ -815,7 +815,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                 <input
                   value={followPromptButtonLabel}
                   onChange={(e) => setFollowPromptButtonLabel(e.target.value)}
-                  placeholder="I'm following ✅"
+                  placeholder="i'm following"
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
                   maxLength={20}
                 />
@@ -924,7 +924,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             secondLinkButtonLabel={secondaryButtonLabel || "Open link"}
             requireFollow={requireFollow}
             followPromptMessage={followPromptMessage}
-            followPromptButtonLabel={followPromptButtonLabel || "I'm following ✅"}
+            followPromptButtonLabel={followPromptButtonLabel || "i'm following"}
           />
         </div>
       </div>

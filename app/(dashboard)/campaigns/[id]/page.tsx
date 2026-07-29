@@ -225,10 +225,10 @@ export default function CampaignDetailPage() {
           <Summary title="They must follow first">
             <FieldBox>
               {campaign.followPromptMessage ||
-                "Quick favor before I send your link: I don't make any money from this — it's free and always will be. If it helps you, the best support is a follow that sticks (no follow-and-dash 😅) and a star on the GitHub repo. Tap the button once you're following and your link is on the way 👇"}
+                "quick favor before i send your link. i don't make any money from this, it's free. if you want to support me, just don't unfollow after, and star the repo on github if it helps you. tap the button once you're following and i'll send it over"}
             </FieldBox>
             <FieldBox>
-              {campaign.followPromptButtonLabel || "I'm following ✅"}
+              {campaign.followPromptButtonLabel || "i'm following"}
             </FieldBox>
           </Summary>
         )}
@@ -316,7 +316,7 @@ export default function CampaignDetailPage() {
             requireFollow={campaign.requireFollow}
             followPromptMessage={campaign.followPromptMessage ?? ""}
             followPromptButtonLabel={
-              campaign.followPromptButtonLabel ?? "I'm following ✅"
+              campaign.followPromptButtonLabel ?? "i'm following"
             }
           />
           </div>

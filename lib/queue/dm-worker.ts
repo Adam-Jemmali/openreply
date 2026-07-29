@@ -428,7 +428,7 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
         const promptText = renderMessageWithoutLink({
           message:
             automation.followPromptMessage ||
-            "Quick favor before I send your link: I don't make any money from this — it's free and always will be. If it helps you, the best support is a follow that sticks (no follow-and-dash 😅) and a star on the GitHub repo. Tap the button once you're following and your link is on the way 👇",
+            "quick favor before i send your link. i don't make any money from this, it's free. if you want to support me, just don't unfollow after, and star the repo on github if it helps you. tap the button once you're following and i'll send it over",
           commenterName,
         });
         await sendPrivateReplyWithButton(
@@ -436,7 +436,7 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
           automation.instagramAccount.instagramId,
           commentId,
           promptText,
-          automation.followPromptButtonLabel || "I'm following ✅",
+          automation.followPromptButtonLabel || "i'm following",
           `followcheck:${automation.id}`
         );
       } else if (automation.trackedLinks.length > 0) {
@@ -606,7 +606,7 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
       const promptText = renderMessageWithoutLink({
         message:
           automation.followPromptMessage ||
-          "Quick favor before I send your link: I don't make any money from this — it's free and always will be. If it helps you, the best support is a follow that sticks (no follow-and-dash 😅) and a star on the GitHub repo. Tap the button once you're following and your link is on the way 👇",
+          "quick favor before i send your link. i don't make any money from this, it's free. if you want to support me, just don't unfollow after, and star the repo on github if it helps you. tap the button once you're following and i'll send it over",
         commenterName,
       });
       try {
@@ -615,7 +615,7 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
           automation.instagramAccount.instagramId,
           userId,
           promptText,
-          automation.followPromptButtonLabel || "I'm following ✅",
+          automation.followPromptButtonLabel || "i'm following",
           `followcheck:${automation.id}`
         );
       } catch (error) {
