@@ -29,6 +29,9 @@ interface Campaign {
   publicReplyEnabled: boolean;
   publicReplyMessage: string | null;
   publicReplyMessages: string[];
+  requireFollow: boolean;
+  followPromptMessage: string | null;
+  followPromptButtonLabel: string | null;
   isActive: boolean;
   wholeWordMatch: boolean;
   instagramAccountId: string;
@@ -44,6 +47,7 @@ interface Campaign {
   trackedLinks: Array<{
     id: string;
     slug: string;
+    label: string | null;
     destinationUrl: string;
     trackedUrl: string;
     _count: { clicks: number };
@@ -240,6 +244,11 @@ export default function CampaignsPage() {
           publicReplyEnabled: auto.publicReplyEnabled,
           publicReplyMessages: auto.publicReplyMessages,
           trackedDestinationUrl: auto.trackedLinks[0]?.destinationUrl ?? "",
+          secondaryDestinationUrl: auto.trackedLinks[1]?.destinationUrl ?? "",
+          secondaryButtonLabel: auto.trackedLinks[1]?.label ?? "Open link",
+          requireFollow: auto.requireFollow,
+          followPromptMessage: auto.followPromptMessage,
+          followPromptButtonLabel: auto.followPromptButtonLabel,
           wholeWordMatch: auto.wholeWordMatch,
           isActive: false,
         }),
@@ -431,6 +440,16 @@ export default function CampaignsPage() {
                   {auto.pendingNextReel && (
                     <span className="shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-400">
                       Waiting for next reel
+                    </span>
+                  )}
+                  {auto.requireFollow && (
+                    <span className="shrink-0 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+                      Follow gate
+                    </span>
+                  )}
+                  {auto.trackedLinks.length >= 2 && (
+                    <span className="shrink-0 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+                      2 links
                     </span>
                   )}
                 </div>

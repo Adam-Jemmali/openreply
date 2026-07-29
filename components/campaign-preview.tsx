@@ -28,6 +28,11 @@ interface CampaignPreviewProps {
   revealMessage: string;
   hasLink: boolean;
   linkButtonLabel: string;
+  hasSecondLink: boolean;
+  secondLinkButtonLabel: string;
+  requireFollow: boolean;
+  followPromptMessage: string;
+  followPromptButtonLabel: string;
 }
 
 const SAMPLE_USER = "username";
@@ -292,6 +297,11 @@ function DmScreen({
   revealMessage,
   hasLink,
   linkButtonLabel,
+  hasSecondLink,
+  secondLinkButtonLabel,
+  requireFollow,
+  followPromptMessage,
+  followPromptButtonLabel,
 }: {
   username: string;
   avatarUrl: string | null;
@@ -301,6 +311,11 @@ function DmScreen({
   revealMessage: string;
   hasLink: boolean;
   linkButtonLabel: string;
+  hasSecondLink: boolean;
+  secondLinkButtonLabel: string;
+  requireFollow: boolean;
+  followPromptMessage: string;
+  followPromptButtonLabel: string;
 }) {
   return (
     <div className="flex h-full flex-col text-white">
@@ -334,6 +349,27 @@ function DmScreen({
             </div>
           </>
         )}
+        {requireFollow && (
+          <>
+            <div className="flex items-end gap-2">
+              <Avatar url={avatarUrl} size={24} />
+              <div className="max-w-[80%] overflow-hidden rounded-2xl rounded-bl-md bg-zinc-800">
+                <p className="whitespace-pre-wrap px-3 py-2 text-sm">
+                  {followPromptMessage ||
+                    "Almost there! Follow me and tap the button below to grab your link 💛"}
+                </p>
+                <div className="mx-1.5 mb-1.5 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
+                  {followPromptButtonLabel || "I'm following ✅"}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <div className="rounded-2xl rounded-br-md bg-accent px-3 py-2 text-sm">
+                {followPromptButtonLabel || "I'm following ✅"}
+              </div>
+            </div>
+          </>
+        )}
         {(() => {
           const resolved = revealMessage.replace(/\{username\}/g, SAMPLE_USER);
           const hasToken = resolved.includes("{link}");
@@ -355,9 +391,16 @@ function DmScreen({
                   </p>
                 )}
                 {showCard && (
-                  <div className="mx-1.5 mb-1.5 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
-                    {linkButtonLabel || "Open link"}
-                  </div>
+                  <>
+                    <div className="mx-1.5 mb-1.5 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
+                      {linkButtonLabel || "Open link"}
+                    </div>
+                    {hasSecondLink && (
+                      <div className="mx-1.5 mb-1.5 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
+                        {secondLinkButtonLabel || "Open link"}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -415,6 +458,11 @@ export default function CampaignPreview(props: CampaignPreviewProps) {
             revealMessage={props.revealMessage}
             hasLink={props.hasLink}
             linkButtonLabel={props.linkButtonLabel}
+            hasSecondLink={props.hasSecondLink}
+            secondLinkButtonLabel={props.secondLinkButtonLabel}
+            requireFollow={props.requireFollow}
+            followPromptMessage={props.followPromptMessage}
+            followPromptButtonLabel={props.followPromptButtonLabel}
           />
         )}
       </Phone>
