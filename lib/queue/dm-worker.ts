@@ -593,13 +593,16 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
     return;
   }
 
-  // Follow-gate: on a `followcheck:` tap, verify the user follows before
-  // revealing the link. Not following → re-send the prompt and stop (no quota
-  // spent). Following, or unverifiable (null), falls through and delivers the
-  // link — fail-open so a real follower is never trapped.
-  if (isFollowCheck && automation.requireFollow) {
+  // Follow-gate: before revealing the link, verify the user follows. On a
+  // `followcheck:` tap a non-follower gets the prompt again (no quota spent);
+  // on a read fallback a non-follower is silently skipped — the gate must not
+  // be bypassable by just reading the DM and waiting. Following, or
+  // unverifiable (null), falls through and delivers the link — fail-open so a
+  // real follower is never trapped.
+  if ((isFollowCheck || fallback) && automation.requireFollow) {
     const follows = await getUserFollowStatus(accessToken, userId);
     if (follows === false) {
+      if (fallback) return;
       const promptText = renderMessageWithoutLink({
         message:
           automation.followPromptMessage ||

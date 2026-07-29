@@ -698,14 +698,14 @@ describe("DM Worker — Full Pipeline", () => {
     expect(mockReserveWorkspaceDMSend).not.toHaveBeenCalled();
   });
 
-  it("should skip follow-gating for a read fallback and send the next DM", async () => {
+  it("should not let a read fallback bypass the follow gate", async () => {
     mockPrisma.automation.findMany.mockResolvedValue([]);
     mockPrisma.automation.findFirst.mockResolvedValue({
       ...mockAutomation,
       requireFollow: true,
       trackedLinks: [],
     });
-    mockGetUserFollowStatus.mockResolvedValue(false);
+    mockGetUserFollowStatus.mockResolvedValue(false); // still not following
 
     const processor = getProcessor();
     await processor(
@@ -717,7 +717,31 @@ describe("DM Worker — Full Pipeline", () => {
       })
     );
 
-    expect(mockGetUserFollowStatus).not.toHaveBeenCalled();
+    // Non-follower on a read fallback: no link, and no re-prompt spam either.
+    expect(mockSendDirectMessage).not.toHaveBeenCalled();
+    expect(mockSendDirectMessageWithButton).not.toHaveBeenCalled();
+    expect(mockReserveWorkspaceDMSend).not.toHaveBeenCalled();
+  });
+
+  it("should deliver a follow-gated read fallback once the user follows", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([]);
+    mockPrisma.automation.findFirst.mockResolvedValue({
+      ...mockAutomation,
+      requireFollow: true,
+      trackedLinks: [],
+    });
+    mockGetUserFollowStatus.mockResolvedValue(true);
+
+    const processor = getProcessor();
+    await processor(
+      createMockPostbackJob({
+        instagramAccountId: "ig_456",
+        userId: "commenter_999",
+        payload: "reveal:auto_789",
+        fallback: true,
+      })
+    );
+
     expect(mockSendDirectMessage).toHaveBeenCalledWith(
       "decrypted_token",
       "ig_456",
