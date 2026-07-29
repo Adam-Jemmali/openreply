@@ -428,7 +428,7 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
         const promptText = renderMessageWithoutLink({
           message:
             automation.followPromptMessage ||
-            "Almost there! Follow me and tap the button below to grab your link 💛",
+            "Quick favor before I send your link: I don't make any money from this — it's free and always will be. If it helps you, the best support is a follow that sticks (no follow-and-dash 😅) and a star on the GitHub repo. Tap the button once you're following and your link is on the way 👇",
           commenterName,
         });
         await sendPrivateReplyWithButton(
@@ -606,7 +606,7 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
       const promptText = renderMessageWithoutLink({
         message:
           automation.followPromptMessage ||
-          "Almost there! Follow me and tap the button below to grab your link 💛",
+          "Quick favor before I send your link: I don't make any money from this — it's free and always will be. If it helps you, the best support is a follow that sticks (no follow-and-dash 😅) and a star on the GitHub repo. Tap the button once you're following and your link is on the way 👇",
         commenterName,
       });
       try {

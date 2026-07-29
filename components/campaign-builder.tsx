@@ -807,7 +807,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                 <textarea
                   value={followPromptMessage}
                   onChange={(e) => setFollowPromptMessage(e.target.value)}
-                  placeholder="Almost there! Follow me and tap the button below to grab your link 💛"
+                  placeholder="Quick favor before I send your link: I don't make any money from this — it's free and always will be. If it helps you, the best support is a follow that sticks (no follow-and-dash 😅) and a star on the GitHub repo. Tap the button once you're following and your link is on the way 👇"
                   rows={3}
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
                   maxLength={1000}
