@@ -33,6 +33,8 @@ interface CampaignPreviewProps {
   requireFollow: boolean;
   followPromptMessage: string;
   followPromptButtonLabel: string;
+  followUpEnabled: boolean;
+  followUpMessage: string;
 }
 
 const SAMPLE_USER = "username";
@@ -302,6 +304,8 @@ function DmScreen({
   requireFollow,
   followPromptMessage,
   followPromptButtonLabel,
+  followUpEnabled,
+  followUpMessage,
 }: {
   username: string;
   avatarUrl: string | null;
@@ -316,6 +320,8 @@ function DmScreen({
   requireFollow: boolean;
   followPromptMessage: string;
   followPromptButtonLabel: string;
+  followUpEnabled: boolean;
+  followUpMessage: string;
 }) {
   return (
     <div className="flex h-full flex-col text-white">
@@ -406,6 +412,18 @@ function DmScreen({
             </div>
           );
         })()}
+        {followUpEnabled && (
+          <div className="flex items-end gap-2">
+            <Avatar url={avatarUrl} size={24} />
+            <div className="max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-800 px-3 py-2">
+              <p className="whitespace-pre-wrap text-sm">
+                {followUpMessage.trim()
+                  ? followUpMessage.replace(/\{username\}/g, SAMPLE_USER)
+                  : "Btw just wanted to say thanks for following me, I appreciate the support 🙌"}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 px-3 py-3">
@@ -463,6 +481,8 @@ export default function CampaignPreview(props: CampaignPreviewProps) {
             requireFollow={props.requireFollow}
             followPromptMessage={props.followPromptMessage}
             followPromptButtonLabel={props.followPromptButtonLabel}
+            followUpEnabled={props.followUpEnabled}
+            followUpMessage={props.followUpMessage}
           />
         )}
       </Phone>

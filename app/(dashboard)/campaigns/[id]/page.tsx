@@ -30,6 +30,8 @@ interface Campaign {
   requireFollow: boolean;
   followPromptMessage: string | null;
   followPromptButtonLabel: string | null;
+  followUpEnabled: boolean;
+  followUpMessage: string | null;
   publicReplyEnabled: boolean;
   publicReplyMessage: string | null;
   publicReplyMessages: string[];
@@ -318,6 +320,8 @@ export default function CampaignDetailPage() {
             followPromptButtonLabel={
               campaign.followPromptButtonLabel ?? "i'm following"
             }
+            followUpEnabled={campaign.followUpEnabled ?? false}
+            followUpMessage={campaign.followUpMessage ?? ""}
           />
           </div>
         )}

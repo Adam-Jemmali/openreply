@@ -703,6 +703,27 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
         revealMessage
       );
     }
+    // Optional appreciation follow-up: once the link has been delivered on a
+    // confirmed follow, send a short thank-you. Best-effort — a failure here
+    // must not flip the reveal (already sent) to a failed state.
+    if (automation.followUpEnabled && automation.followUpMessage?.trim()) {
+      try {
+        await sendDirectMessage(
+          accessToken,
+          automation.instagramAccount.instagramId,
+          userId,
+          renderMessageWithoutLink({
+            message: automation.followUpMessage,
+            commenterName,
+          })
+        );
+      } catch (followUpError) {
+        console.log(
+          "[DM Worker] Failed to send follow-up message:",
+          formatError(followUpError)
+        );
+      }
+    }
     await prisma.dmLog.upsert({
       where: {
         automationId_commentId: { automationId: automation.id, commentId: dedupeId },

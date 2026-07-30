@@ -44,6 +44,8 @@ interface LoadedCampaign {
   requireFollow: boolean;
   followPromptMessage: string | null;
   followPromptButtonLabel: string | null;
+  followUpEnabled: boolean;
+  followUpMessage: string | null;
   publicReplyEnabled: boolean;
   publicReplyMessage: string | null;
   publicReplyMessages: string[];
@@ -172,6 +174,8 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
   const [followPromptMessage, setFollowPromptMessage] = useState("");
   const [followPromptButtonLabel, setFollowPromptButtonLabel] =
     useState("i'm following");
+  const [followUpEnabled, setFollowUpEnabled] = useState(false);
+  const [followUpMessage, setFollowUpMessage] = useState("");
 
   const [previewTab, setPreviewTab] = useState<PreviewTab>("dm");
 
@@ -276,6 +280,8 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
         setFollowPromptButtonLabel(
           c.followPromptButtonLabel ?? "i'm following"
         );
+        setFollowUpEnabled(c.followUpEnabled ?? false);
+        setFollowUpMessage(c.followUpMessage ?? "");
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
@@ -411,6 +417,8 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
       followPromptButtonLabel: requireFollow
         ? followPromptButtonLabel.trim() || "i'm following"
         : "",
+      followUpEnabled,
+      followUpMessage: followUpEnabled ? followUpMessage.trim() : "",
       isActive: activeValue,
     };
 
@@ -895,6 +903,33 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
               {"{link}"} inserts the tracked link; {"{username}"} personalizes.
             </p>
           </div>
+          <div className="mt-3 rounded-lg border border-border p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-foreground">
+                a follow-up thank-you message
+              </span>
+              <Toggle
+                on={followUpEnabled}
+                onToggle={() => setFollowUpEnabled(!followUpEnabled)}
+              />
+            </div>
+            {followUpEnabled && (
+              <div className="mt-3 space-y-2">
+                <textarea
+                  value={followUpMessage}
+                  onChange={(e) => setFollowUpMessage(e.target.value)}
+                  placeholder="Btw just wanted to say thanks for following me, I appreciate the support 🙌"
+                  rows={3}
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
+                  maxLength={1000}
+                />
+                <p className="text-xs text-muted">
+                  Sent right after the link, once they&apos;ve tapped through.
+                  {" {username}"} personalizes it.
+                </p>
+              </div>
+            )}
+          </div>
         </Section>
       </div>
 
@@ -925,6 +960,8 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             requireFollow={requireFollow}
             followPromptMessage={followPromptMessage}
             followPromptButtonLabel={followPromptButtonLabel || "i'm following"}
+            followUpEnabled={followUpEnabled}
+            followUpMessage={followUpMessage}
           />
         </div>
       </div>
