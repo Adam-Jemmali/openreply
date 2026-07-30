@@ -12,6 +12,8 @@ import {
 import { prisma } from "@/lib/db/client";
 import {
   MetaApiError,
+  RateLimitError,
+  TokenExpiredError,
   getUserFollowStatus,
   sendCommentReply,
   sendDirectMessage,
@@ -45,6 +47,25 @@ function formatError(error: unknown): string {
     return error.message;
   }
   return "Unknown error";
+}
+
+// Meta rejections that a plain-text retry cannot fix: the send was refused for
+// the conversation, not for the button template. Retrying as text just burns
+// the attempt and — worse — overwrites the real error with a misleading one
+// ("invalid for a private reply", because the first attempt already used up the
+// comment's single allowed private reply).
+const NON_TEMPLATE_REJECTIONS = [
+  /outside of allowed window/i,
+  /invalid for a private reply/i,
+  /requested user cannot be found/i,
+];
+
+function isTemplateRejection(error: unknown): boolean {
+  if (error instanceof TokenExpiredError || error instanceof RateLimitError) {
+    return false;
+  }
+  const message = error instanceof Error ? error.message : "";
+  return !NON_TEMPLATE_REJECTIONS.some((pattern) => pattern.test(message));
 }
 
 type WorkerTrackedLink = {
@@ -295,6 +316,35 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
     // this run needed. Don't re-send the DM.
     if (!needsDm) continue;
 
+    // Meta allows exactly ONE private reply per comment, ever — across every
+    // campaign. When several campaigns match the same comment (duplicated
+    // campaigns, or an any-post campaign overlapping a post-specific one), only
+    // the first can deliver; the rest would fail with "The comment is invalid
+    // for a private reply". Skip them explicitly instead of burning an API call
+    // and logging a failure the user can do nothing about. The public reply
+    // above still goes out per campaign — only the DM leg is deduped.
+    const privateReplyUsedBy = await prisma.dmLog.findFirst({
+      where: {
+        commentId,
+        status: "SENT",
+        automationId: { not: automation.id },
+      },
+      select: { automation: { select: { name: true } } },
+    });
+    if (privateReplyUsedBy) {
+      await prisma.dmLog.update({
+        where: {
+          automationId_commentId: { automationId: automation.id, commentId },
+        },
+        data: {
+          status: "SKIPPED_DEDUP",
+          matchedKeyword: matchResult.matchedKeyword,
+          errorMessage: `Another campaign (${privateReplyUsedBy.automation?.name ?? "unknown"}) already sent the one private reply Instagram allows for this comment`,
+        },
+      });
+      continue;
+    }
+
     const usage = await reserveWorkspaceDMSend(automation.workspaceId);
     if (!usage.allowed) {
       await prisma.dmLog.update({
@@ -462,7 +512,11 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
             buttons
           );
         } catch (buttonError) {
-          // Button template rejected; send as text with inline links instead.
+          // Only a template rejection is worth retrying as text. Anything else
+          // (closed window, comment already replied to) fails the same way and
+          // would replace the real error with a misleading one.
+          if (!isTemplateRejection(buttonError)) throw buttonError;
+
           console.log(
             "[DM Worker] Button template rejected, falling back to inline link:",
             formatError(buttonError)
@@ -473,12 +527,19 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
             automation.trackedLinks,
             bodyText
           );
-          await sendPrivateReply(
-            accessToken,
-            automation.instagramAccount.instagramId,
-            commentId,
-            fallbackMessage
-          );
+          try {
+            await sendPrivateReply(
+              accessToken,
+              automation.instagramAccount.instagramId,
+              commentId,
+              fallbackMessage
+            );
+          } catch {
+            // The first attempt consumed the comment's single private reply, so
+            // this one reports "invalid for a private reply" no matter what the
+            // underlying problem was. Surface the original rejection instead.
+            throw buttonError;
+          }
         }
       } else {
         const dmMessage = renderMessageWithTracking({
@@ -674,7 +735,10 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
           buttons
         );
       } catch (buttonError) {
-        // Button template rejected; send as text with inline links instead.
+        // As in processComment: a closed messaging window rejects the text
+        // retry too, so don't let it overwrite the original error.
+        if (!isTemplateRejection(buttonError)) throw buttonError;
+
         console.log(
           "[DM Worker] Button template rejected in postback, falling back to inline link:",
           formatError(buttonError)
@@ -685,12 +749,16 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
           automation.trackedLinks,
           bodyText
         );
-        await sendDirectMessage(
-          accessToken,
-          automation.instagramAccount.instagramId,
-          userId,
-          fallbackMessage
-        );
+        try {
+          await sendDirectMessage(
+            accessToken,
+            automation.instagramAccount.instagramId,
+            userId,
+            fallbackMessage
+          );
+        } catch {
+          throw buttonError;
+        }
       }
     } else {
       const revealMessage = renderMessageWithTracking({
@@ -745,6 +813,22 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
     });
   } catch (error) {
     await releaseWorkspaceDMReservation(automation.workspaceId, usage.periodStart);
+
+    // The read fallback is speculative: it only runs when the user read the
+    // opening DM and never tapped the button, which means they never messaged
+    // us, which means the 24-hour window is closed and Meta rejects the send
+    // ("outside of allowed window"). That is the expected outcome here, not a
+    // failure the user can act on — so don't log it as FAILED and don't retry
+    // it against a window that cannot reopen on its own. It still delivers in
+    // the case that does work: the user replied by typing instead of tapping.
+    if (fallback) {
+      console.log(
+        "[DM Worker] Read fallback not delivered (messaging window closed):",
+        formatError(error)
+      );
+      return;
+    }
+
     await prisma.dmLog.upsert({
       where: {
         automationId_commentId: { automationId: automation.id, commentId: dedupeId },

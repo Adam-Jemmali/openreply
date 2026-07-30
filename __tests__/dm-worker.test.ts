@@ -76,6 +76,12 @@ vi.mock("@/lib/meta/client", () => ({
       this.name = "MetaApiError";
     }
   },
+  TokenExpiredError: class TokenExpiredError extends Error {
+    name = "TokenExpiredError";
+  },
+  RateLimitError: class RateLimitError extends Error {
+    name = "RateLimitError";
+  },
 }));
 
 vi.mock("@/lib/meta/oauth", () => ({
@@ -105,6 +111,7 @@ vi.mock("@/lib/queue/client", () => ({
   }),
   getRedisConnection: vi.fn(),
   POSTBACK_JOB_NAME: "process-postback",
+  FOLLOWUP_JOB_NAME: "process-followup",
 }));
 
 vi.mock("bullmq", () => {
@@ -207,9 +214,14 @@ beforeEach(() => {
   mockPrisma.automation.findFirst.mockResolvedValue(null);
   mockPrisma.dmLog.findUnique.mockResolvedValue(null);
   mockPrisma.dmLog.create.mockResolvedValue({});
-  mockPrisma.dmLog.findFirst.mockResolvedValue({
-    commenterName: "commenter_user",
-  });
+  // Two different lookups share findFirst: the cross-campaign private-reply
+  // check (keyed on status SENT) and the postback's name lookup. Only the
+  // latter should resolve by default, or every comment would look like a
+  // duplicate of an already-answered one.
+  mockPrisma.dmLog.findFirst.mockImplementation(
+    async (args: { where?: { status?: string } } = {}) =>
+      args.where?.status === "SENT" ? null : { commenterName: "commenter_user" }
+  );
   mockPrisma.dmLog.upsert.mockResolvedValue({});
   mockPrisma.dmLog.update.mockResolvedValue({});
   mockPrisma.instagramAccount.findUnique.mockResolvedValue({
@@ -747,6 +759,140 @@ describe("DM Worker — Full Pipeline", () => {
       "ig_456",
       "commenter_999",
       "Hey commenter_user! Here is the link: https://example.com"
+    );
+  });
+
+  it("should not log a failure when a read fallback hits a closed messaging window", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([]);
+    mockPrisma.automation.findFirst.mockResolvedValue({
+      ...mockAutomation,
+      trackedLinks: [],
+    });
+    mockSendDirectMessage.mockRejectedValue(
+      new Error("This message is sent outside of allowed window.")
+    );
+
+    const processor = getProcessor();
+    // The window cannot reopen on its own, so this must not throw (no retries)
+    // and must not leave a FAILED row the user can do nothing about.
+    await expect(
+      processor(
+        createMockPostbackJob({
+          instagramAccountId: "ig_456",
+          userId: "commenter_999",
+          payload: "reveal:auto_789",
+          fallback: true,
+        })
+      )
+    ).resolves.toBeUndefined();
+
+    expect(mockPrisma.dmLog.upsert).not.toHaveBeenCalled();
+    expect(mockReleaseWorkspaceDMReservation).toHaveBeenCalled();
+  });
+
+  it("should still log a failure for a real button tap that fails", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([]);
+    mockPrisma.automation.findFirst.mockResolvedValue({
+      ...mockAutomation,
+      trackedLinks: [],
+    });
+    mockSendDirectMessage.mockRejectedValue(new Error("boom"));
+
+    const processor = getProcessor();
+    await expect(
+      processor(
+        createMockPostbackJob({
+          instagramAccountId: "ig_456",
+          userId: "commenter_999",
+          payload: "reveal:auto_789",
+        })
+      )
+    ).rejects.toThrow("boom");
+
+    expect(mockPrisma.dmLog.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ status: "FAILED" }),
+      })
+    );
+  });
+});
+
+describe("DM Worker — one private reply per comment", () => {
+  it("should skip a campaign when another already used the comment's private reply", async () => {
+    mockPrisma.dmLog.findFirst.mockImplementation(
+      async (args: { where?: { status?: string } } = {}) =>
+        args.where?.status === "SENT"
+          ? { automation: { name: "openreply 1" } }
+          : { commenterName: "commenter_user" }
+    );
+
+    const processor = getProcessor();
+    await processor(createMockJob());
+
+    expect(mockSendPrivateReply).not.toHaveBeenCalled();
+    expect(mockReserveWorkspaceDMSend).not.toHaveBeenCalled();
+    expect(mockPrisma.dmLog.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "SKIPPED_DEDUP",
+          errorMessage: expect.stringContaining("openreply 1"),
+        }),
+      })
+    );
+  });
+
+  it("should not fall back to a plain-text private reply when the window is the problem", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([
+      {
+        ...mockAutomation,
+        trackedLinks: [
+          { slug: "abc123", label: null, destinationUrl: "https://example.com" },
+        ],
+      },
+    ]);
+    mockSendPrivateReplyWithLinkButton.mockRejectedValue(
+      new Error("The comment is invalid for a private reply")
+    );
+
+    const processor = getProcessor();
+    await expect(processor(createMockJob())).rejects.toThrow(
+      "The comment is invalid for a private reply"
+    );
+
+    // A text retry on the same comment would fail identically and overwrite the
+    // real reason, so it must not be attempted.
+    expect(mockSendPrivateReply).not.toHaveBeenCalled();
+    expect(mockPrisma.dmLog.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "FAILED",
+          errorMessage: "The comment is invalid for a private reply",
+        }),
+      })
+    );
+  });
+
+  it("should still fall back to plain text when the button template itself is rejected", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([
+      {
+        ...mockAutomation,
+        trackedLinks: [
+          { slug: "abc123", label: null, destinationUrl: "https://example.com" },
+        ],
+      },
+    ]);
+    mockSendPrivateReplyWithLinkButton.mockRejectedValue(
+      new Error("Unsupported message template")
+    );
+
+    const processor = getProcessor();
+    await processor(createMockJob());
+
+    expect(mockSendPrivateReply).toHaveBeenCalled();
+    expect(mockPrisma.dmLog.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "SENT" }),
+      })
     );
   });
 });
