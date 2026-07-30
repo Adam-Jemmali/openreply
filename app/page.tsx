@@ -256,202 +256,243 @@ async function getGitHubStars(): Promise<number | null> {
 export default async function Home() {
   const stars = await getGitHubStars();
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border bg-background">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3" aria-label="OpenReply home">
-            <span className="text-lg font-bold text-white">OpenReply</span>
+    <main className="min-h-screen bg-white text-zinc-900 antialiased">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/85 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5 sm:px-6 lg:px-8">
+          <Link href="/" className="text-sm font-semibold tracking-tight text-zinc-900">
+            Open<span className="text-orange-600">Reply</span>
           </Link>
-
-          <div className="flex items-center gap-4">
+          <nav className="flex items-center gap-2 sm:gap-5">
+            <a href="#how" className="hidden text-sm text-zinc-600 transition-colors hover:text-zinc-900 sm:inline">
+              How it works
+            </a>
+            <a href="#features" className="hidden text-sm text-zinc-600 transition-colors hover:text-zinc-900 sm:inline">
+              Features
+            </a>
             <a
               href={GITHUB_URL}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-400 transition hover:text-white"
               aria-label="View OpenReply on GitHub"
+              className="inline-flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-zinc-600 transition-colors hover:text-zinc-900"
             >
               <svg viewBox="0 0 16 16" aria-hidden="true" className="h-4 w-4 fill-current">
                 <path d={githubIconPath} />
               </svg>
-              {stars !== null && <span>{formatStars(stars)}</span>}
+              <span className="hidden sm:inline">GitHub</span>
+              {stars !== null && (
+                <span className="text-zinc-400">{formatStars(stars)}</span>
+              )}
             </a>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center gap-2 bg-cyan-300 px-4 py-2 text-sm font-bold text-zinc-950 transition hover:bg-cyan-200"
+              className="rounded-md bg-orange-500 px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-orange-600"
             >
               Get started
             </Link>
-          </div>
+          </nav>
         </div>
       </header>
 
-      <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-5 pb-16 pt-12 sm:px-6 sm:pt-18 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 lg:pb-24">
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-zinc-300">
-            Open source · Official Meta API
-          </div>
-
-          <h1 className="mt-7 text-balance text-5xl font-black leading-[1.02] text-white sm:text-6xl lg:text-7xl">
-            Make every comment start the right DM
-          </h1>
-
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300">
-            Open-sourced ManyChat. When someone comments your keyword on a post
-            or reel, they get your DM a second later. Free, self-hosted, and
-            built on the official Instagram API.
-          </p>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center gap-2 bg-cyan-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-cyan-200"
-            >
-              Get started
-            </Link>
-            <a
-              href="#how"
-              className="inline-flex items-center justify-center border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-bold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
-            >
-              See how it works
-            </a>
-          </div>
-
-          <dl className="mt-10 grid max-w-xl grid-cols-3 gap-3">
-            {heroStats.map((stat) => (
-              <div key={stat.label} className="border border-white/10 bg-white/[0.035] p-4">
-                <dt className="text-2xl font-black text-white">{stat.value}</dt>
-                <dd className="mt-1 text-xs leading-5 text-zinc-500">{stat.label}</dd>
-              </div>
-            ))}
-          </dl>
+      {/* Hero */}
+      <section className="mx-auto max-w-4xl px-5 pt-20 pb-16 sm:px-6 sm:pt-28 lg:px-8">
+        <p className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-medium text-orange-600">
+          Open-source ManyChat · self-hosted · official Instagram API
+        </p>
+        <h1 className="mt-6 text-4xl font-semibold leading-[1.05] tracking-tight text-zinc-900 sm:text-5xl">
+          Someone comments your keyword. A second later, they get your DM.
+        </h1>
+        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-zinc-600">
+          OpenReply watches your Instagram comments and sends the right private
+          reply automatically. Free, open source, and running on your own
+          infrastructure — no scraping, no monthly fee, no middleman.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <Link
+            href="/login"
+            className="rounded-md bg-orange-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-orange-600"
+          >
+            Get started
+          </Link>
+          <a
+            href="#how"
+            className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+          >
+            <span className="text-orange-500">↳</span>
+            See how it works
+          </a>
         </div>
 
-        <div className="relative">
-          <OverviewPreview />
-          <div className="absolute -bottom-8 -left-6 hidden lg:block">
-            <MatchedCommentCard />
-          </div>
-        </div>
+        {/* Hero stats — divided editorial row */}
+        <dl className="mt-14 grid grid-cols-1 divide-y divide-zinc-200 border-y border-zinc-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          {heroStats.map((stat) => (
+            <div key={stat.label} className="px-5 py-5 sm:first:pl-0">
+              <dt className="text-2xl font-semibold tracking-tight text-zinc-900">
+                {stat.value}
+              </dt>
+              <dd className="mt-1 text-sm text-zinc-500">{stat.label}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
-      <section id="how" className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-6 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
-          <div>
-            <p className="text-sm font-bold uppercase text-cyan-200">How it works</p>
-            <h2 className="mt-3 text-4xl font-black leading-tight text-white sm:text-5xl">
-              A comment in, a DM out
-            </h2>
-            <p className="mt-5 text-base leading-8 text-zinc-400">
-              Three steps. Connect an account, build a campaign, and let it run.
-              The webhook handles it live and the poll sweeps up whatever the
-              webhook misses.
-            </p>
-          </div>
-
-          <div className="grid gap-4">
-            {flowSteps.map((step) => (
-              <article
-                key={step.title}
-                className="grid gap-4 border border-white/10 bg-white/[0.035] p-5 sm:grid-cols-[120px_1fr]"
-              >
-                <p className="text-sm font-bold text-cyan-200">{step.eyebrow}</p>
-                <div>
-                  <h3 className="text-xl font-bold text-white">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-zinc-400">{step.description}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-white/10 bg-white/[0.025] py-20">
-        <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:items-center">
-          <DashboardPreview />
-
-          <div>
-            <p className="text-sm font-bold uppercase text-cyan-200">The dashboard</p>
-            <h2 className="mt-3 text-4xl font-black leading-tight text-white sm:text-5xl">
-              See exactly what happened
-            </h2>
-            <p className="mt-5 text-base leading-8 text-zinc-400">
-              Every comment event is traceable: queued, matched, sent, skipped,
-              failed, or rate-limited. No black box.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section id="features" className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-6 lg:px-8">
-        <div className="max-w-2xl">
-          <p className="text-sm font-bold uppercase text-cyan-200">What&rsquo;s included</p>
-          <h2 className="mt-3 text-4xl font-black leading-tight text-white sm:text-5xl">
-            Everything, no tiers
-          </h2>
-          <p className="mt-5 text-base leading-8 text-zinc-400">
-            It is self-hosted and open source, so there is nothing to unlock. You
-            run it, you own it.
-          </p>
-        </div>
-
-        <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => (
+      {/* How it works */}
+      <section id="how" className="mx-auto max-w-4xl scroll-mt-20 px-5 py-16 sm:px-6 lg:px-8">
+        <p className="text-xs font-semibold uppercase tracking-widest text-orange-600">
+          <span className="mr-2">◆</span>How it works
+        </p>
+        <div className="mt-8 divide-y divide-zinc-200 border-t border-zinc-200">
+          {flowSteps.map((step, i) => (
             <div
-              key={feature}
-              className="border border-white/10 bg-white/[0.035] p-4 text-sm font-semibold text-zinc-200"
+              key={step.eyebrow}
+              className="grid grid-cols-[auto_1fr] gap-x-4 py-6 sm:grid-cols-[3rem_10rem_1fr] sm:gap-x-8"
             >
-              {feature}
+              <div className="text-sm font-semibold tabular-nums text-zinc-300">
+                {String(i + 1).padStart(2, "0")}
+              </div>
+              <div className="col-start-2 sm:col-start-2">
+                <p className="text-xs font-semibold uppercase tracking-widest text-orange-600">
+                  {step.eyebrow}
+                </p>
+                <h3 className="mt-1 text-base font-semibold text-zinc-900">
+                  {step.title}
+                </h3>
+              </div>
+              <p className="col-span-2 mt-2 flex gap-2 text-sm leading-relaxed text-zinc-600 sm:col-span-1 sm:col-start-3 sm:mt-0">
+                <span className="text-orange-500">↳</span>
+                <span>{step.description}</span>
+              </p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl px-5 pb-20 sm:px-6 lg:px-8">
-        <div className="grid gap-8 border border-white/10 bg-surface p-6 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <h2 className="max-w-3xl text-4xl font-black leading-tight text-white sm:text-5xl">
-              Turn your next reel&rsquo;s comments into DMs
-            </h2>
-            <p className="mt-4 text-base text-zinc-400">
-              Free and open source. Star it if it saves you a subscription.
-            </p>
+      {/* App preview — one prominent screenshot with a matched-comment card floating over it */}
+      <section className="mx-auto max-w-5xl px-5 py-16 sm:px-6 lg:px-8">
+        <p className="text-xs font-semibold uppercase tracking-widest text-orange-600">
+          <span className="mr-2">◆</span>A look inside
+        </p>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <h2 className="max-w-xl text-2xl font-semibold tracking-tight text-zinc-900">
+            Every matched comment, from trigger to delivered DM.
+          </h2>
+          <p className="text-sm text-zinc-500">
+            The dashboard you actually self-host.
+          </p>
+        </div>
+        <div className="relative mt-10 shadow-xl shadow-zinc-300/40">
+          <OverviewPreview />
+          <div className="absolute -bottom-8 right-4 z-10 hidden shadow-xl shadow-zinc-400/30 sm:right-6 sm:block">
+            <MatchedCommentCard />
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+        </div>
+      </section>
+
+      {/* Dashboard band — full traceability */}
+      <section className="border-y border-zinc-200 bg-zinc-50">
+        <div className="mx-auto max-w-5xl px-5 py-16 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-orange-600">
+                <span className="mr-2">◆</span>No black box
+              </p>
+              <h2 className="mt-4 text-2xl font-semibold tracking-tight text-zinc-900">
+                See every send: queued, matched, sent, skipped, failed, or
+                rate-limited.
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-zinc-600">
+                The dashboard logs the full lifecycle of every comment and DM, so
+                you always know what went out, what didn't, and why. No guessing,
+                no scraping, no vendor between you and Instagram.
+              </p>
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Read the OpenReply source on GitHub"
+                className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-zinc-700 transition-colors hover:text-zinc-900"
+              >
+                <span className="text-orange-500">↳</span>
+                Read the source on GitHub
+              </a>
+            </div>
+            <div className="shadow-xl shadow-zinc-300/40">
+              <DashboardPreview />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features — two plain columns, no cards */}
+      <section id="features" className="mx-auto max-w-4xl scroll-mt-20 px-5 py-16 sm:px-6 lg:px-8">
+        <p className="text-xs font-semibold uppercase tracking-widest text-orange-600">
+          <span className="mr-2">◆</span>What's included
+        </p>
+        <ul className="mt-8 grid grid-cols-1 gap-x-10 gap-y-px border-t border-zinc-200 sm:grid-cols-2">
+          {features.map((feature) => (
+            <li
+              key={feature}
+              className="flex items-baseline gap-3 border-b border-zinc-200 py-4 text-sm text-zinc-700"
+            >
+              <span className="text-orange-500">↳</span>
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* CTA band */}
+      <section className="mx-auto max-w-4xl px-5 py-16 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-orange-200 bg-orange-50 px-6 py-12 text-center sm:px-12">
+          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+            Own your Instagram automation.
+          </h2>
+          <p className="mx-auto mt-3 max-w-lg text-base text-zinc-600">
+            Clone it, deploy it, connect your account. It's free and the code is
+            yours to read, change, and run forever.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/login"
-              className="inline-flex items-center justify-center gap-2 bg-cyan-300 px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-cyan-200"
+              className="rounded-md bg-orange-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-orange-600"
             >
               Get started
             </Link>
             <a
               href={GITHUB_URL}
-              className="inline-flex items-center justify-center border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-bold text-white transition hover:border-white/20 hover:bg-white/[0.08]"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="View OpenReply source on GitHub"
+              className="inline-flex items-center gap-2 rounded-md border border-orange-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
             >
-              View on GitHub
+              <svg viewBox="0 0 16 16" aria-hidden="true" className="h-4 w-4 fill-current">
+                <path d={githubIconPath} />
+              </svg>
+              View source
+              {stars !== null && (
+                <span className="text-zinc-400">{formatStars(stars)}</span>
+              )}
             </a>
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-white/10 py-8">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 text-sm text-zinc-500 sm:px-6 lg:px-8">
-          <span className="font-semibold text-zinc-300">OpenReply</span>
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 transition hover:text-white"
-          >
-            <svg
-              viewBox="0 0 16 16"
-              aria-hidden="true"
-              className="h-4 w-4 fill-current"
-            >
-              <path d={githubIconPath} />
-            </svg>
-            {stars !== null && <span>{formatStars(stars)}</span>}
-          </a>
+      {/* Footer */}
+      <footer className="border-t border-zinc-200">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-zinc-500 sm:flex-row sm:px-6 lg:px-8">
+          <p>
+            Open<span className="text-orange-600">Reply</span> — free, open
+            source, self-hosted.
+          </p>
+          <div className="flex items-center gap-5">
+            <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="hover:text-zinc-900">
+              GitHub
+            </a>
+            <Link href="/login" className="hover:text-zinc-900">
+              Get started
+            </Link>
+          </div>
         </div>
       </footer>
     </main>
