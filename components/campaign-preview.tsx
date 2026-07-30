@@ -412,14 +412,9 @@ function DmScreen({
                 )}
                 {showCard && (
                   <>
-                    <div className="mx-1.5 mb-1 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
+                    <div className="mx-1.5 mb-1.5 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
                       {linkButtonLabel || "Open link"}
                     </div>
-                    {linkUrl && (
-                      <p className="mx-1.5 mb-1.5 break-all text-center text-[10px] text-sky-400">
-                        {linkUrl}
-                      </p>
-                    )}
                     {hasSecondLink && (
                       <div className="mx-1.5 mb-1.5 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
                         {secondLinkButtonLabel || "Open link"}
