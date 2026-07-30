@@ -523,6 +523,15 @@ export default function CampaignsPage() {
                 className="flex items-center gap-2"
                 onClick={(e) => e.stopPropagation()}
               >
+                {/* Copy reel URL */}
+                {auto.postUrl && (
+                  <button
+                    onClick={() => void copyReelUrl(auto)}
+                    className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border-hover hover:text-foreground"
+                  >
+                    {copiedId === auto.id ? "Copied!" : "Copy URL"}
+                  </button>
+                )}
                 {/* Toggle */}
                 <button
                   onClick={() => toggleActive(auto.id, auto.isActive)}
@@ -556,14 +565,7 @@ export default function CampaignsPage() {
                         className="fixed inset-0 z-10"
                         onClick={() => setMenuOpenId(null)}
                       />
-                      <div className="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
-                        <button
-                          onClick={() => void copyReelUrl(auto)}
-                          disabled={!auto.postUrl}
-                          className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-surface-hover disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
-                        >
-                          {copiedId === auto.id ? "Copied!" : "Copy reel URL"}
-                        </button>
+                      <div className="absolute right-0 z-20 mt-1 w-36 overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
                         <button
                           onClick={() => void duplicateAutomation(auto)}
                           className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-surface-hover"
