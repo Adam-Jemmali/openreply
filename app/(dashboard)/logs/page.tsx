@@ -130,16 +130,18 @@ export default function LogsPage() {
 
       {/* Table */}
       <div className="panel rounded overflow-hidden">
+        {/* Six columns don't fit a phone; the table keeps its width and scrolls
+            horizontally inside the panel rather than crushing every cell. */}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="border-b border-border text-left">
-                <th className="px-6 py-4 text-xs font-semibold text-muted uppercase tracking-wider">Commenter</th>
-                <th className="px-6 py-4 text-xs font-semibold text-muted uppercase tracking-wider">Comment</th>
-                <th className="px-6 py-4 text-xs font-semibold text-muted uppercase tracking-wider">Campaign</th>
-                <th className="px-6 py-4 text-xs font-semibold text-muted uppercase tracking-wider">Account</th>
-                <th className="px-6 py-4 text-xs font-semibold text-muted uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-semibold text-muted uppercase tracking-wider">Time</th>
+                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">Commenter</th>
+                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">Comment</th>
+                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">Campaign</th>
+                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">Account</th>
+                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">Status</th>
+                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">Time</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -147,8 +149,8 @@ export default function LogsPage() {
                 <>
                   {[...Array(5)].map((_, i) => (
                     <tr key={i}>
-                      <td colSpan={6} className="px-6 py-4">
-                        <div className="h-4 bg-zinc-800 rounded" />
+                      <td colSpan={6} className="px-4 py-4 sm:px-6">
+                        <div className="h-4 bg-surface-hover rounded" />
                       </td>
                     </tr>
                   ))}
@@ -156,7 +158,7 @@ export default function LogsPage() {
               )}
               {!loading && logs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted">
+                  <td colSpan={6} className="px-4 py-12 text-center text-muted sm:px-6">
                     No logs found
                   </td>
                 </tr>
@@ -164,24 +166,24 @@ export default function LogsPage() {
               {!loading &&
                 logs.map((log) => (
                   <tr key={log.id} className="hover:bg-surface-hover/50 transition-colors">
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 sm:px-6">
                       <span className="font-medium text-foreground">
                         @{log.commenterName ?? log.commenterId.slice(0, 8)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 max-w-[200px]">
+                    <td className="px-4 py-4 max-w-[200px] sm:px-6">
                       <span className="text-muted truncate block">{log.commentText}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 sm:px-6">
                       <span className="text-muted">{log.automation.name}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 sm:px-6">
                       <span className="text-muted">@{log.instagramAccount.username}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 sm:px-6">
                       <StatusBadge status={log.status} />
                     </td>
-                    <td className="px-6 py-4 text-muted whitespace-nowrap">
+                    <td className="px-4 py-4 text-muted whitespace-nowrap sm:px-6">
                       {new Date(log.createdAt).toLocaleString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -197,7 +199,7 @@ export default function LogsPage() {
 
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 border-t border-border sm:px-6">
             <p className="text-xs text-muted">
               Showing {(pagination.page - 1) * pagination.limit + 1}–
               {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}

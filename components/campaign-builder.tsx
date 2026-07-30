@@ -116,7 +116,7 @@ function Toggle({
       type="button"
       onClick={onToggle}
       className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-        on ? "bg-accent" : "bg-zinc-700"
+        on ? "bg-accent" : "bg-zinc-300"
       }`}
     >
       <span
@@ -561,7 +561,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
       )}
 
       {/* Top bar */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 items-center gap-3">
           {mode === "edit" ? (
             <>
@@ -570,7 +570,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
               </span>
               <span
                 className={`rounded px-2 py-0.5 text-xs font-semibold ${
-                  isActive ? "bg-success/15 text-success" : "bg-zinc-500/15 text-zinc-400"
+                  isActive ? "bg-success/15 text-success" : "bg-zinc-500/15 text-muted"
                 }`}
               >
                 {isActive ? "LIVE" : "PAUSED"}
@@ -580,7 +580,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             <span className="text-sm text-muted">New campaign</span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           {importQueue && (
             <button
               type="button"
@@ -622,7 +622,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[300px_1fr] lg:gap-8">
       {/* Left: controls */}
       <div className="space-y-8">
         {error && (

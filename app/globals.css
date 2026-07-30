@@ -4,24 +4,24 @@
    Plain and functional. No gradients, glass, glow, or animation. */
 
 @theme inline {
-  --color-background: #0b0b0d;
-  --color-foreground: #f4f4f5;
-  --color-surface: #161618;
-  --color-surface-hover: #1f1f22;
-  --color-border: #2e2e33;
-  --color-border-hover: #45454d;
-  --color-muted: #9b9ba3;
-  --color-accent: #6b8afd;
-  --color-accent-hover: #5372e8;
-  --color-success: #4ade80;
-  --color-error: #f87171;
-  --color-warning: #fbbf24;
+  --color-background: #ffffff;
+  --color-foreground: #18181b;
+  --color-surface: #f7f7f8;
+  --color-surface-hover: #efeff1;
+  --color-border: #e4e4e7;
+  --color-border-hover: #d4d4d8;
+  --color-muted: #71717a;
+  --color-accent: #f97316;
+  --color-accent-hover: #ea580c;
+  --color-success: #16a34a;
+  --color-error: #dc2626;
+  --color-warning: #d97706;
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, monospace;
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -42,6 +42,17 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
   outline-offset: 1px;
+}
+
+/* iOS Safari zooms the whole page in when a focused field's text is under 16px,
+   and never zooms back out. Fields are text-sm (14px) throughout, so raise them
+   to 16px on phones and leave the desktop sizing alone. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
 }
 
 /* Panel — flat container. Replaces .glass / .glass-strong. */

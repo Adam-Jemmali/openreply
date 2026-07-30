@@ -47,11 +47,11 @@ export default async function LoginPage({
 
         <div className="panel rounded p-8 shadow-black/40">
           {selectedTemplate && !checkEmail && (
-            <div className="mb-5 border border-cyan-200/20 bg-cyan-300/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-cyan-100">
+            <div className="mb-5 border border-accent/20 bg-accent/10 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-accent">
                 Template selected
               </p>
-              <p className="mt-2 text-sm font-semibold text-white">
+              <p className="mt-2 text-sm font-semibold text-foreground">
                 {selectedTemplate.title}
               </p>
             </div>

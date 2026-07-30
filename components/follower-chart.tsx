@@ -29,11 +29,11 @@ export interface FollowerChartPoint {
   delta: number | null;
 }
 
-// Validated against the dark chart surface (#161618): lightness band, chroma
-// floor and 3:1 contrast all pass. See globals.css --color-accent.
-const SERIES_COLOR = "#6b8afd";
-const GRID_COLOR = "#2e2e33";
-const AXIS_TEXT = "#9b9ba3";
+// Colors read against the light chart surface (#ffffff): the accent line clears
+// 3:1 contrast and grid/axis text match the muted/border tokens. See globals.css.
+const SERIES_COLOR = "#f97316";
+const GRID_COLOR = "#e4e4e7";
+const AXIS_TEXT = "#71717a";
 
 function formatCompact(n: number): string {
   if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -95,9 +95,9 @@ export default function FollowerChart({
     data.length > 1 ? data[data.length - 1].followers - data[0].followers : null;
 
   return (
-    <div className="panel rounded p-6">
+    <div className="panel rounded p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-sm font-semibold text-foreground">
             Followers over time
           </h2>
@@ -166,7 +166,7 @@ export default function FollowerChart({
           </table>
         </div>
       ) : (
-        <div className="mt-6 h-64">
+        <div className="mt-6 h-56 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data}
@@ -205,7 +205,7 @@ export default function FollowerChart({
                 stroke={SERIES_COLOR}
                 strokeWidth={2}
                 dot={false}
-                activeDot={{ r: 4, fill: SERIES_COLOR, stroke: "#161618", strokeWidth: 2 }}
+                activeDot={{ r: 4, fill: SERIES_COLOR, stroke: "#ffffff", strokeWidth: 2 }}
                 isAnimationActive={false}
               />
             </LineChart>
