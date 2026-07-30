@@ -46,6 +46,7 @@ interface LoadedCampaign {
   followPromptButtonLabel: string | null;
   followUpEnabled: boolean;
   followUpMessage: string | null;
+  followUpDelayMinutes: number | null;
   publicReplyEnabled: boolean;
   publicReplyMessage: string | null;
   publicReplyMessages: string[];
@@ -421,6 +422,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
         : "",
       followUpEnabled,
       followUpMessage: followUpEnabled ? followUpMessage.trim() : "",
+      followUpDelayMinutes: followUpEnabled ? followUpDelayMinutes : 0,
       isActive: activeValue,
     };
 
@@ -976,6 +978,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             revealMessage={dmMessage}
             hasLink={Boolean(trackedDestinationUrl.trim())}
             linkButtonLabel={linkButtonLabel || "Open link"}
+            linkUrl={trackedDestinationUrl.trim() || undefined}
             hasSecondLink={
               secondLinkOpen && Boolean(secondaryDestinationUrl.trim())
             }
@@ -985,6 +988,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             followPromptButtonLabel={followPromptButtonLabel || "i'm following"}
             followUpEnabled={followUpEnabled}
             followUpMessage={followUpMessage}
+            followUpDelayMinutes={followUpDelayMinutes}
           />
         </div>
       </div>

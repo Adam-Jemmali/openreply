@@ -485,6 +485,13 @@ export default function CampaignsPage() {
                 {/* DM preview */}
                 <p className="text-sm text-muted truncate">&ldquo;{auto.dmMessage}&rdquo;</p>
 
+                {/* Tracked link sent */}
+                {auto.trackedLinks[0]?.trackedUrl && (
+                  <p className="mt-2 truncate font-mono text-xs text-zinc-500">
+                    {auto.trackedLinks[0].trackedUrl}
+                  </p>
+                )}
+
                 {/* Stats */}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-zinc-500">
                   <span className="font-medium text-foreground">

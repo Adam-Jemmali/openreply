@@ -32,13 +32,18 @@ interface Campaign {
   followPromptButtonLabel: string | null;
   followUpEnabled: boolean;
   followUpMessage: string | null;
+  followUpDelayMinutes: number | null;
   publicReplyEnabled: boolean;
   publicReplyMessage: string | null;
   publicReplyMessages: string[];
   isActive: boolean;
   instagramAccountId: string;
   instagramAccount: { username: string };
-  trackedLinks?: { destinationUrl: string; label?: string | null }[];
+  trackedLinks?: {
+    destinationUrl: string;
+    label?: string | null;
+    trackedUrl?: string;
+  }[];
   analytics: {
     sent: number;
     skipped: number;
@@ -246,6 +251,37 @@ export default function CampaignDetailPage() {
             </FieldBox>
           )}
         </Summary>
+
+        {hasLink && (
+          <Summary title="The exact link sent">
+            {campaign.trackedLinks
+              ?.filter((link) => link.destinationUrl)
+              .map((link, i) => (
+                <div key={i} className="space-y-1">
+                  <div className="rounded border border-border bg-surface px-3 py-2">
+                    <p className="select-all break-all font-mono text-xs text-foreground">
+                      {link.trackedUrl ?? link.destinationUrl}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted">
+                    {link.label ? `${link.label} · ` : ""}redirects to{" "}
+                    <span className="break-all">{link.destinationUrl}</span>
+                  </p>
+                </div>
+              ))}
+          </Summary>
+        )}
+
+        {campaign.followUpEnabled && campaign.followUpMessage && (
+          <Summary title="Then a follow-up message">
+            <FieldBox>{campaign.followUpMessage}</FieldBox>
+            <p className="text-xs text-muted">
+              {campaign.followUpDelayMinutes && campaign.followUpDelayMinutes > 0
+                ? `Sent ${campaign.followUpDelayMinutes} min after the link.`
+                : "Sent right after the link."}
+            </p>
+          </Summary>
+        )}
       </div>
 
       {/* Right: top bar + tabs */}
@@ -311,6 +347,10 @@ export default function CampaignDetailPage() {
             revealMessage={campaign.dmMessage}
             hasLink={hasLink}
             linkButtonLabel={campaign.linkButtonLabel ?? "Open link"}
+            linkUrl={
+              campaign.trackedLinks?.[0]?.trackedUrl ??
+              campaign.trackedLinks?.[0]?.destinationUrl
+            }
             hasSecondLink={hasSecondLink}
             secondLinkButtonLabel={
               campaign.trackedLinks?.[1]?.label ?? "Open link"
@@ -322,6 +362,7 @@ export default function CampaignDetailPage() {
             }
             followUpEnabled={campaign.followUpEnabled ?? false}
             followUpMessage={campaign.followUpMessage ?? ""}
+            followUpDelayMinutes={campaign.followUpDelayMinutes ?? 0}
           />
           </div>
         )}

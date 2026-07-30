@@ -28,6 +28,7 @@ interface CampaignPreviewProps {
   revealMessage: string;
   hasLink: boolean;
   linkButtonLabel: string;
+  linkUrl?: string;
   hasSecondLink: boolean;
   secondLinkButtonLabel: string;
   requireFollow: boolean;
@@ -35,6 +36,7 @@ interface CampaignPreviewProps {
   followPromptButtonLabel: string;
   followUpEnabled: boolean;
   followUpMessage: string;
+  followUpDelayMinutes?: number;
 }
 
 const SAMPLE_USER = "username";
@@ -87,12 +89,20 @@ const Ico = {
 
 /* ----------------------------- helpers ----------------------------- */
 
-function renderMessage(text: string, hasLink: boolean) {
+function renderMessage(text: string, hasLink: boolean, linkUrl?: string) {
   const withName = text.replace(/\{username\}/g, SAMPLE_USER);
   return withName.split(/(\{link\})/g).map((part, i) =>
     part === "{link}" ? (
-      <span key={i} className={hasLink ? "text-sky-400 underline break-all" : "text-zinc-500 italic"}>
-        {hasLink ? "yourlink.com/offer" : "{link}"}
+      <span
+        key={i}
+        className={
+          linkUrl || hasLink
+            ? "text-sky-400 underline break-all"
+            : "text-zinc-500 italic"
+        }
+      >
+        {/* Show the actual link being sent, not a placeholder token. */}
+        {linkUrl || (hasLink ? "your link" : "{link}")}
       </span>
     ) : (
       <span key={i}>{part}</span>
@@ -306,6 +316,8 @@ function DmScreen({
   followPromptButtonLabel,
   followUpEnabled,
   followUpMessage,
+  followUpDelayMinutes = 0,
+  linkUrl,
 }: {
   username: string;
   avatarUrl: string | null;
@@ -315,6 +327,7 @@ function DmScreen({
   revealMessage: string;
   hasLink: boolean;
   linkButtonLabel: string;
+  linkUrl?: string;
   hasSecondLink: boolean;
   secondLinkButtonLabel: string;
   requireFollow: boolean;
@@ -322,6 +335,7 @@ function DmScreen({
   followPromptButtonLabel: string;
   followUpEnabled: boolean;
   followUpMessage: string;
+  followUpDelayMinutes?: number;
 }) {
   return (
     <div className="flex h-full flex-col text-white">
@@ -393,14 +407,19 @@ function DmScreen({
                       ? "Write a message"
                       : showCard
                         ? bodyText
-                        : renderMessage(revealMessage, hasLink)}
+                        : renderMessage(revealMessage, hasLink, linkUrl)}
                   </p>
                 )}
                 {showCard && (
                   <>
-                    <div className="mx-1.5 mb-1.5 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
+                    <div className="mx-1.5 mb-1 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
                       {linkButtonLabel || "Open link"}
                     </div>
+                    {linkUrl && (
+                      <p className="mx-1.5 mb-1.5 break-all text-center text-[10px] text-sky-400">
+                        {linkUrl}
+                      </p>
+                    )}
                     {hasSecondLink && (
                       <div className="mx-1.5 mb-1.5 rounded-xl bg-zinc-700 px-4 py-1.5 text-center text-sm font-medium text-white">
                         {secondLinkButtonLabel || "Open link"}
@@ -413,16 +432,23 @@ function DmScreen({
           );
         })()}
         {followUpEnabled && (
-          <div className="flex items-end gap-2">
-            <Avatar url={avatarUrl} size={24} />
-            <div className="max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-800 px-3 py-2">
-              <p className="whitespace-pre-wrap text-sm">
-                {followUpMessage.trim()
-                  ? followUpMessage.replace(/\{username\}/g, SAMPLE_USER)
-                  : "Btw just wanted to say thanks for following me, I appreciate the support 🙌"}
+          <>
+            {followUpDelayMinutes > 0 && (
+              <p className="py-1 text-center text-[11px] text-zinc-500">
+                {followUpDelayMinutes} min later
               </p>
+            )}
+            <div className="flex items-end gap-2">
+              <Avatar url={avatarUrl} size={24} />
+              <div className="max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-800 px-3 py-2">
+                <p className="whitespace-pre-wrap text-sm">
+                  {followUpMessage.trim()
+                    ? followUpMessage.replace(/\{username\}/g, SAMPLE_USER)
+                    : "Btw just wanted to say thanks for following me, I appreciate the support 🙌"}
+                </p>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
 
@@ -483,6 +509,8 @@ export default function CampaignPreview(props: CampaignPreviewProps) {
             followPromptButtonLabel={props.followPromptButtonLabel}
             followUpEnabled={props.followUpEnabled}
             followUpMessage={props.followUpMessage}
+            followUpDelayMinutes={props.followUpDelayMinutes}
+            linkUrl={props.linkUrl}
           />
         )}
       </Phone>
