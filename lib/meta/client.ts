@@ -59,6 +59,9 @@ export interface InstagramUser {
   username: string;
   name?: string;
   profile_picture_url?: string;
+  // Current follower total. Point-in-time only — Instagram exposes no history
+  // for this field, so long-run trends come from FollowerSnapshot instead.
+  followers_count?: number;
 }
 
 export interface InstagramComment {
@@ -542,7 +545,7 @@ export async function getUserInfo(accessToken: string): Promise<InstagramUser> {
   const url = new URL(`${instagramGraphBase()}/me`);
   url.searchParams.set(
     "fields",
-    "id,user_id,username,name,profile_picture_url"
+    "id,user_id,username,name,profile_picture_url,followers_count"
   );
   url.searchParams.set("access_token", accessToken);
 
@@ -630,6 +633,75 @@ export async function getMediaInsights(
       entry.values?.[0]?.value ?? 0;
   }
   return result;
+}
+
+/** One day of net follower change, as reported by account insights. */
+export interface FollowerCountPoint {
+  /** ISO date (YYYY-MM-DD) the change is attributed to. */
+  date: string;
+  /** Net followers gained (or lost, if negative) that day. */
+  delta: number;
+}
+
+// Instagram only retains ~30 days of account insights, and rejects windows
+// wider than 30 days outright. Stay just inside the limit.
+const FOLLOWER_INSIGHT_MAX_DAYS = 30;
+
+/**
+ * Fetch the daily net follower change for an account.
+ *
+ * Requires `instagram_business_manage_insights`. Note this metric is *not*
+ * universally available: Instagram omits it for accounts under 100 followers
+ * and it is unsupported on some account types. Callers must treat `null` as
+ * "no series available" rather than an error — see the backfill in
+ * `lib/reports/follower-history.ts`.
+ *
+ * Returns daily deltas, not running totals. Reconstruct absolute counts by
+ * anchoring on a known `followers_count` and walking backwards.
+ */
+export async function getFollowerCountSeries(
+  accessToken: string,
+  instagramAccountId: string,
+  days: number = FOLLOWER_INSIGHT_MAX_DAYS
+): Promise<FollowerCountPoint[] | null> {
+  const span = Math.min(Math.max(days, 1), FOLLOWER_INSIGHT_MAX_DAYS);
+  const until = Math.floor(Date.now() / 1000);
+  const since = until - (span - 1) * 86_400;
+
+  const url = new URL(`${instagramGraphBase()}/${instagramAccountId}/insights`);
+  url.searchParams.set("metric", "follower_count");
+  url.searchParams.set("period", "day");
+  url.searchParams.set("since", String(since));
+  url.searchParams.set("until", String(until));
+  url.searchParams.set("access_token", accessToken);
+
+  try {
+    const response = await fetch(url.toString());
+    const data = await handleResponse<{
+      data: Array<{
+        name: string;
+        values: Array<{ value: number; end_time?: string }>;
+      }>;
+    }>(response);
+
+    const metric = data.data.find((d) => d.name === "follower_count");
+    if (!metric?.values?.length) return null;
+
+    return metric.values.map((v) => ({
+      date: (v.end_time ?? new Date().toISOString()).slice(0, 10),
+      delta: v.value ?? 0,
+    }));
+  } catch (err) {
+    // A missing permission is a real signal the caller may want to surface;
+    // anything else here means the metric is simply unavailable for this
+    // account, which is not worth failing the whole dashboard over.
+    if (err instanceof PermissionError) throw err;
+    console.warn(
+      "[Instagram] follower_count insights unavailable:",
+      err instanceof Error ? err.message : err
+    );
+    return null;
+  }
 }
 
 export async function getLongLivedToken(
