@@ -143,9 +143,9 @@ export default function PostPicker({
       ) : (
         <>
           {usedPostIds && Object.keys(usedPostIds).length > 0 && (
-            <p className="flex items-center gap-2 px-1 text-xs text-muted">
-              <span className="inline-block h-3 w-3 rounded-sm border-2 border-warning" />
-              Already used by another campaign
+            <p className="flex items-center gap-1.5 px-1 text-[11px] text-muted">
+              <span className="inline-block h-2.5 w-2.5 rounded-sm border border-warning/50" />
+              Already used
             </p>
           )}
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-64 overflow-y-auto p-1">
@@ -174,7 +174,7 @@ export default function PostPicker({
                 isSelected
                   ? "border-accent"
                   : isUsed
-                    ? "border-warning hover:border-warning"
+                    ? "border-warning/40 hover:border-warning/60"
                     : "border-border hover:border-border-hover"
               }
             `}
@@ -183,7 +183,7 @@ export default function PostPicker({
               <img
                 src={thumb}
                 alt={post.caption?.slice(0, 50) ?? "Instagram post"}
-                className={`w-full h-full object-cover ${isUsed ? "opacity-60" : ""}`}
+                className={`w-full h-full object-cover ${isUsed ? "opacity-75" : ""}`}
               />
             ) : (
               <div className="w-full h-full bg-surface flex items-center justify-center">
@@ -207,11 +207,6 @@ export default function PostPicker({
             {isSelected && (
               <span className="absolute bottom-0 inset-x-0 bg-accent text-white text-xs py-1">
                 Selected
-              </span>
-            )}
-            {isUsed && (
-              <span className="absolute bottom-0 inset-x-0 bg-warning text-background text-xs py-1 font-medium">
-                In use
               </span>
             )}
           </button>
