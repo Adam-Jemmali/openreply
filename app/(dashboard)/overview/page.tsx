@@ -132,7 +132,7 @@ export default function OverviewPage() {
             <select
               value={count}
               onChange={(e) => handleCountChange(e.target.value)}
-              className="min-w-36 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent/40"
+              className="border-0 bg-transparent py-2 pr-1 text-sm text-foreground outline-none"
             >
               {COUNT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
