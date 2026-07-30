@@ -68,7 +68,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="panel rounded p-6">
+    <section className="panel rounded p-4 sm:p-6">
       <h2 className="text-base font-semibold text-foreground">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
@@ -138,8 +138,8 @@ export default function DiagnosticsPage() {
         </button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="panel rounded p-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+        <div className="panel rounded p-4 sm:p-5">
           <p className="text-xs font-semibold uppercase text-muted">
             Worker health
           </p>
@@ -157,7 +157,7 @@ export default function DiagnosticsPage() {
           </p>
         </div>
         {["waiting", "active", "delayed", "failed"].map((key) => (
-          <div key={key} className="panel rounded p-5">
+          <div key={key} className="panel rounded p-4 sm:p-5">
             <p className="text-xs font-semibold uppercase text-muted">
               Queue {key}
             </p>
@@ -176,11 +176,11 @@ export default function DiagnosticsPage() {
                 key={`${alert.createdAt}-${alert.jobId ?? alert.message}`}
                 className="rounded border border-border bg-surface/50 p-4"
               >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-foreground">
+                <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                  <p className="min-w-0 flex-1 break-words text-sm font-semibold text-foreground">
                     {alert.message}
                   </p>
-                  <span className="rounded-full bg-error/10 px-2 py-1 text-xs font-semibold text-error">
+                  <span className="shrink-0 rounded-full bg-error/10 px-2 py-1 text-xs font-semibold text-error">
                     {alert.level}
                   </span>
                 </div>
@@ -202,8 +202,8 @@ export default function DiagnosticsPage() {
             <div className="space-y-3">
               {data.dmFailures.map((item) => (
                 <div key={item.id} className="border-b border-border pb-3 last:border-0">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-sm font-semibold text-foreground">
+                  <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                    <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
                       {item.automation.name}
                     </p>
                     <StatusBadge status={item.status} />

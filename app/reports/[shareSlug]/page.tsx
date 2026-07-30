@@ -149,7 +149,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
-          <section className="border border-white/10 bg-white/[0.035] p-6">
+          <section className="border border-white/10 bg-white/[0.035] p-4 sm:p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-xl font-black text-white">
@@ -163,7 +163,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
                 Last send: {formatDate(report.metrics.latestSentAt)}
               </p>
             </div>
-            <div className="mt-8 grid h-56 grid-cols-7 items-end gap-3">
+            <div className="mt-8 grid h-56 grid-cols-7 items-end gap-1.5 sm:gap-3">
               {report.daily.map((day) => (
                 <div key={day.date} className="flex h-full flex-col justify-end gap-2">
                   <div className="flex min-h-0 flex-1 items-end gap-1">
@@ -201,7 +201,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </section>
 
           <aside className="space-y-6">
-            <section className="border border-white/10 bg-white/[0.035] p-6">
+            <section className="border border-white/10 bg-white/[0.035] p-4 sm:p-6">
               <h2 className="text-xl font-black text-white">Top Keywords</h2>
               <div className="mt-5 space-y-3">
                 {report.topKeywords.length === 0 && (
@@ -225,7 +225,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
               </div>
             </section>
 
-            <section className="border border-white/10 bg-white/[0.035] p-6">
+            <section className="border border-white/10 bg-white/[0.035] p-4 sm:p-6">
               <h2 className="text-xl font-black text-white">Tracked Links</h2>
               <div className="mt-5 space-y-3">
                 {report.trackedLinks.length === 0 && (
@@ -251,7 +251,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
           </aside>
         </div>
 
-        <section className="mt-8 border border-white/10 bg-white/[0.035] p-6">
+        <section className="mt-8 border border-white/10 bg-white/[0.035] p-4 sm:p-6">
           <h2 className="text-xl font-black text-white">Campaign Setup</h2>
           <div className="mt-5 grid gap-5 md:grid-cols-3">
             <div>

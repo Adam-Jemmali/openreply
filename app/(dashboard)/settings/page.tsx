@@ -136,11 +136,11 @@ export default function SettingsPage() {
         <InstagramConnectNotice />
       </Suspense>
 
-      <section className="panel rounded p-6">
+      <section className="panel rounded p-4 sm:p-6">
         <h2 className="text-base font-semibold mb-6">Instagram Connection</h2>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b border-border">
+          <div className="flex items-center justify-between gap-3 py-3 border-b border-border">
             <div>
               <p className="text-sm font-medium text-foreground">Status</p>
               <p className="text-xs text-muted mt-0.5">
@@ -158,7 +158,7 @@ export default function SettingsPage() {
             </span>
           </div>
 
-          <div className="flex items-center justify-between py-3 border-b border-border">
+          <div className="flex items-center justify-between gap-3 py-3 border-b border-border">
             <div>
               <p className="text-sm font-medium text-foreground">Accounts</p>
               <p className="text-xs text-muted mt-0.5">
@@ -218,7 +218,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <section className="panel rounded p-6">
+      <section className="panel rounded p-4 sm:p-6">
         <h2 className="text-base font-semibold mb-6">Team</h2>
         <div className="space-y-3">
           {membersData?.members.map((member) => (
@@ -320,9 +320,9 @@ export default function SettingsPage() {
         )}
       </section>
 
-      <section className="panel rounded p-6">
+      <section className="panel rounded p-4 sm:p-6">
         <h2 className="text-base font-semibold mb-6">Usage</h2>
-        <div className="flex items-center justify-between py-3">
+        <div className="flex items-center justify-between gap-3 py-3">
           <div>
             <p className="text-sm font-medium text-foreground">
               DMs sent this month

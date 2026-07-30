@@ -19,5 +19,9 @@ interface StatusBadgeProps {
 export default function StatusBadge({ status }: StatusBadgeProps) {
   const config = statusConfig[status] ?? statusConfig.PENDING;
 
-  return <span className={`text-sm ${config.text}`}>{config.label}</span>;
+  return (
+    <span className={`shrink-0 whitespace-nowrap text-sm ${config.text}`}>
+      {config.label}
+    </span>
+  );
 }
