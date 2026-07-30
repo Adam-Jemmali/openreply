@@ -36,6 +36,9 @@ const createAutomationSchema = z
     followPromptButtonLabel: z.string().max(20).optional().nullable(),
     followUpEnabled: z.boolean().optional().default(false),
     followUpMessage: z.string().max(1000).optional().nullable(),
+    // Minutes to wait before the follow-up. Capped at 24h so it stays inside
+    // Instagram's messaging window.
+    followUpDelayMinutes: z.number().int().min(0).max(1440).optional().default(0),
     publicReplyEnabled: z.boolean().optional().default(false),
     publicReplyMessage: z.string().max(1000).optional().nullable(),
     publicReplyMessages: z
@@ -95,6 +98,7 @@ const updateAutomationSchema = z.object({
   followPromptButtonLabel: z.string().max(20).optional().nullable(),
   followUpEnabled: z.boolean().optional(),
   followUpMessage: z.string().max(1000).optional().nullable(),
+  followUpDelayMinutes: z.number().int().min(0).max(1440).optional(),
   publicReplyEnabled: z.boolean().optional(),
   publicReplyMessage: z.string().max(1000).optional().nullable(),
   publicReplyMessages: z.array(z.string().max(1000)).max(10).optional(),
@@ -408,6 +412,9 @@ export async function POST(request: NextRequest) {
       followUpMessage: parsed.data.followUpEnabled
         ? parsed.data.followUpMessage || null
         : null,
+      followUpDelayMinutes: parsed.data.followUpEnabled
+        ? parsed.data.followUpDelayMinutes
+        : 0,
       publicReplyEnabled: parsed.data.publicReplyEnabled,
       publicReplyMessages: parsed.data.publicReplyEnabled
         ? publicReplyList
@@ -506,6 +513,7 @@ export async function PATCH(request: NextRequest) {
   }
   if (automationData.followUpEnabled === false) {
     automationData.followUpMessage = null;
+    automationData.followUpDelayMinutes = 0;
   }
   // Any-post / next-reel campaigns carry no specific post.
   if (automationData.matchAnyPost === true || automationData.pendingNextReel === true) {

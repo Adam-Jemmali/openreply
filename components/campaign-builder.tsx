@@ -176,6 +176,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
     useState("i'm following");
   const [followUpEnabled, setFollowUpEnabled] = useState(false);
   const [followUpMessage, setFollowUpMessage] = useState("");
+  const [followUpDelayMinutes, setFollowUpDelayMinutes] = useState(0);
 
   const [previewTab, setPreviewTab] = useState<PreviewTab>("dm");
 
@@ -282,6 +283,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
         );
         setFollowUpEnabled(c.followUpEnabled ?? false);
         setFollowUpMessage(c.followUpMessage ?? "");
+        setFollowUpDelayMinutes(c.followUpDelayMinutes ?? 0);
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
@@ -923,9 +925,30 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
                   className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none resize-none"
                   maxLength={1000}
                 />
+                <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
+                  <span className="text-xs text-muted">Send it</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={1440}
+                    value={followUpDelayMinutes}
+                    onChange={(e) =>
+                      setFollowUpDelayMinutes(
+                        Math.max(0, Math.min(1440, Math.floor(Number(e.target.value) || 0)))
+                      )
+                    }
+                    className="w-20 rounded-lg border border-border bg-surface px-2 py-1 text-sm text-foreground focus:border-accent/40 focus:outline-none"
+                  />
+                  <span className="text-xs text-muted">
+                    minutes after the link
+                  </span>
+                </div>
                 <p className="text-xs text-muted">
-                  Sent right after the link, once they&apos;ve tapped through.
-                  {" {username}"} personalizes it.
+                  {followUpDelayMinutes > 0
+                    ? `Sent ${followUpDelayMinutes} min after they tap through.`
+                    : "Sent right after they tap through."}
+                  {" {username}"} personalizes it. Max 24 hours, to stay inside
+                  Instagram&apos;s messaging window.
                 </p>
               </div>
             )}

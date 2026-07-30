@@ -44,9 +44,23 @@ export interface ProcessPostbackJob {
   fallback?: boolean;
 }
 
-export type DmQueueJob = ProcessCommentJob | ProcessPostbackJob;
+// Scheduled after the link is delivered, to send the appreciation follow-up.
+// Enqueued with a delay (followUpDelayMinutes) so it can fire later, not just
+// immediately.
+export interface ProcessFollowUpJob {
+  instagramAccountId: string;
+  userId: string;
+  automationId: string;
+  commenterName?: string | null;
+}
+
+export type DmQueueJob =
+  | ProcessCommentJob
+  | ProcessPostbackJob
+  | ProcessFollowUpJob;
 
 export const POSTBACK_JOB_NAME = "process-postback";
+export const FOLLOWUP_JOB_NAME = "process-followup";
 
 let dmQueue: Queue<DmQueueJob> | null = null;
 

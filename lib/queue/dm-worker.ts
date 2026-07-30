@@ -3,9 +3,11 @@ import {
   getDMQueue,
   getRedisConnection,
   POSTBACK_JOB_NAME,
+  FOLLOWUP_JOB_NAME,
   type DmQueueJob,
   type ProcessCommentJob,
   type ProcessPostbackJob,
+  type ProcessFollowUpJob,
 } from "./client";
 import { prisma } from "@/lib/db/client";
 import {
@@ -703,26 +705,26 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
         revealMessage
       );
     }
-    // Optional appreciation follow-up: once the link has been delivered on a
-    // confirmed follow, send a short thank-you. Best-effort — a failure here
-    // must not flip the reveal (already sent) to a failed state.
+    // Optional appreciation follow-up: once the link has been delivered, send a
+    // short thank-you. It is scheduled as its own delayed job so it can go out
+    // some minutes later (followUpDelayMinutes) rather than immediately. The
+    // deterministic job id dedupes repeat button taps to one follow-up per user.
     if (automation.followUpEnabled && automation.followUpMessage?.trim()) {
-      try {
-        await sendDirectMessage(
-          accessToken,
-          automation.instagramAccount.instagramId,
+      const delayMs =
+        Math.max(0, automation.followUpDelayMinutes ?? 0) * 60_000;
+      await getDMQueue().add(
+        FOLLOWUP_JOB_NAME,
+        {
+          instagramAccountId: automation.instagramAccount.instagramId,
           userId,
-          renderMessageWithoutLink({
-            message: automation.followUpMessage,
-            commenterName,
-          })
-        );
-      } catch (followUpError) {
-        console.log(
-          "[DM Worker] Failed to send follow-up message:",
-          formatError(followUpError)
-        );
-      }
+          automationId: automation.id,
+          commenterName,
+        },
+        {
+          delay: delayMs,
+          jobId: `followup_${automation.id}_${userId}`,
+        }
+      );
     }
     await prisma.dmLog.upsert({
       where: {
@@ -764,9 +766,60 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
   }
 }
 
+/**
+ * Send the scheduled appreciation follow-up. Runs after its delay elapses.
+ * Best-effort: if the message can't be delivered (e.g. the 24-hour messaging
+ * window closed because the delay was long), it is logged, not retried forever.
+ */
+async function processFollowUp(job: Job<ProcessFollowUpJob>): Promise<void> {
+  const { instagramAccountId, userId, automationId, commenterName } = job.data;
+
+  const automation = await prisma.automation.findFirst({
+    where: { id: automationId, isActive: true },
+    include: { instagramAccount: true },
+  });
+
+  if (
+    !automation ||
+    !automation.followUpEnabled ||
+    !automation.followUpMessage?.trim() ||
+    automation.instagramAccount.instagramId !== instagramAccountId ||
+    !automation.instagramAccount.accessToken
+  ) {
+    return;
+  }
+
+  let accessToken: string;
+  try {
+    accessToken = decryptToken(automation.instagramAccount.accessToken);
+  } catch {
+    return;
+  }
+
+  try {
+    await sendDirectMessage(
+      accessToken,
+      automation.instagramAccount.instagramId,
+      userId,
+      renderMessageWithoutLink({
+        message: automation.followUpMessage,
+        commenterName: commenterName ?? null,
+      })
+    );
+  } catch (error) {
+    console.log(
+      "[DM Worker] Failed to send follow-up message:",
+      formatError(error)
+    );
+  }
+}
+
 async function processJob(job: Job<DmQueueJob>): Promise<void> {
   if (job.name === POSTBACK_JOB_NAME) {
     return processPostback(job as Job<ProcessPostbackJob>);
+  }
+  if (job.name === FOLLOWUP_JOB_NAME) {
+    return processFollowUp(job as Job<ProcessFollowUpJob>);
   }
   return processComment(job as Job<ProcessCommentJob>);
 }
