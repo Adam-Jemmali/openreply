@@ -1032,7 +1032,9 @@ describe("DM Worker — DM keyword trigger", () => {
     expect(mockSendDirectMessage).not.toHaveBeenCalled();
   });
 
-  it("should send the link when follow status cannot be verified", async () => {
+  // First contact, so the gate is fail-closed like processComment: an
+  // unverifiable status must not hand out the link.
+  it("should send the follow prompt when follow status cannot be verified", async () => {
     mockPrisma.automation.findMany.mockResolvedValue([
       { ...dmTriggerAutomation, requireFollow: true },
     ]);
@@ -1041,8 +1043,8 @@ describe("DM Worker — DM keyword trigger", () => {
     const processor = getProcessor();
     await processor(createMockMessageJob());
 
-    expect(mockSendDirectMessage).toHaveBeenCalled();
-    expect(mockSendDirectMessageWithButton).not.toHaveBeenCalled();
+    expect(mockSendDirectMessageWithButton).toHaveBeenCalled();
+    expect(mockSendDirectMessage).not.toHaveBeenCalled();
   });
 
   it("should skip and log when the workspace is over its monthly limit", async () => {

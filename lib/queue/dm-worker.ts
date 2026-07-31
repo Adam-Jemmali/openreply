@@ -1049,13 +1049,17 @@ async function processMessage(job: Job<ProcessMessageJob>): Promise<void> {
     });
     const commenterName = priorLog?.commenterName ?? null;
 
-    // Follow gate: a non-follower gets the prompt instead of the link, with the
-    // same `followcheck:` button that re-verifies on tap. `null` (unverifiable)
-    // falls through to the link, matching the comment path's fail-open rule.
+    // Follow gate: anyone not confirmed as a follower gets the prompt instead of
+    // the link, with the same `followcheck:` button that re-verifies on tap.
+    // `null` (unverifiable) prompts too — this is first contact, exactly like a
+    // comment, so it follows processComment's fail-closed rule rather than the
+    // postback path's fail-open one. Fail-open is only safe after a tap, where
+    // the user has already claimed to follow; here it would hand the link to
+    // anyone whose status the API happens not to resolve.
     let sendFollowPrompt = false;
     if (automation.requireFollow) {
       const follows = await getUserFollowStatus(accessToken, senderId);
-      sendFollowPrompt = follows === false;
+      sendFollowPrompt = follows !== true;
     }
 
     const usage = await reserveWorkspaceDMSend(automation.workspaceId);
