@@ -158,12 +158,13 @@ export async function POST(request: NextRequest) {
           senderId: event.senderId,
         },
         {
-          // Message ids can contain characters BullMQ rejects in a job id
-          // (":" in particular), so normalize them out.
-          jobId: `message_${event.instagramAccountId}_${event.messageId.replace(
-            /[^A-Za-z0-9_-]/g,
-            "_"
-          )}`,
+          // Message ids can contain characters BullMQ rejects in a job id (":"
+          // in particular). base64url encodes into exactly the allowed alphabet
+          // and stays injective — substituting invalid characters would let two
+          // distinct mids collapse onto one job id, silently dropping a reply.
+          jobId: `message_${event.instagramAccountId}_${Buffer.from(
+            event.messageId
+          ).toString("base64url")}`,
         }
       );
 
