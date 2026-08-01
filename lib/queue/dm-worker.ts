@@ -136,14 +136,21 @@ async function sendRevealDirectMessage(
   commenterName: string | null,
   context: string
 ): Promise<void> {
-  // If no tracked links: send message with inline links only
+  // Use automation's message, or fallback if empty
+  const messageText =
+    automation.dmMessage?.trim() || "Here's your link:";
+
+  // If no tracked links: send message with inline message only
   if (!automation.trackedLinks || automation.trackedLinks.length === 0) {
+    console.log(
+      `[DM Worker] No tracked links in ${context}, sending text-only message`
+    );
     await sendDirectMessage(
       accessToken,
       automation.instagramAccount.instagramId,
       userId,
       renderMessageWithTracking({
-        message: automation.dmMessage,
+        message: messageText,
         commenterName,
         trackedLinks: [],
       })
@@ -154,7 +161,7 @@ async function sendRevealDirectMessage(
   // Try button template first; if Meta rejects it, fall back to inline links.
   const bodyText =
     renderMessageWithoutLink({
-      message: automation.dmMessage,
+      message: messageText,
       commenterName,
     }) || "Here's your link:";
   const buttons = buildLinkButtons(
@@ -200,7 +207,7 @@ async function sendRevealDirectMessage(
         automation.instagramAccount.instagramId,
         userId,
         buildInlineLinkFallback(
-          automation.dmMessage,
+          messageText,
           commenterName,
           automation.trackedLinks,
           bodyText
@@ -881,8 +888,14 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
 
   try {
     console.log(
-      `[DM Worker] Postback processing for automation ${automation.id}: trackedLinks=${automation.trackedLinks?.length ?? 0}, dmMessage="${automation.dmMessage}", linkButtonLabel="${automation.linkButtonLabel}"`
+      `[DM Worker] Postback processing: automation=${automation.name} (${automation.id}), trackedLinks=${automation.trackedLinks?.length ?? 0}, dmMessage="${automation.dmMessage?.substring(0, 50)}..."`
     );
+
+    // Ensure we have tracked links, otherwise send inline
+    if (!automation.trackedLinks || automation.trackedLinks.length === 0) {
+      console.log(`[DM Worker] No tracked links found, sending fallback with inline message`);
+    }
+
     await sendRevealDirectMessage(
       accessToken,
       automation,
@@ -890,7 +903,7 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
       commenterName,
       "postback"
     );
-    console.log(`[DM Worker] Postback reveal sent successfully`);
+    console.log(`[DM Worker] Postback reveal sent successfully to userId=${userId}`);
     // Optional appreciation follow-up: once the link has been delivered, send a
     // short thank-you. It is scheduled as its own delayed job so it can go out
     // some minutes later (followUpDelayMinutes) rather than immediately. The
