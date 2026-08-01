@@ -239,16 +239,6 @@ async function sweepCampaign(
         mediaId,
         source: "POLLING",
       });
-      // Mark comment as processed to coordinate with webhook dedup
-      await prisma.processedComment.upsert({
-        where: { commentId: c.id },
-        create: {
-          instagramAccountId: account.instagramId,
-          commentId: c.id,
-          source: "POLLING",
-        },
-        update: { source: "POLLING" },
-      });
       stat.enqueued += 1;
     }
   }

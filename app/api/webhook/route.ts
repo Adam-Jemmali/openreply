@@ -85,15 +85,6 @@ export async function POST(request: NextRequest) {
     const queue = getDMQueue();
 
     for (const event of commentEvents) {
-      // Skip comments already processed by this webhook or the reconciler.
-      // This prevents duplicate jobs if Meta retries the webhook delivery.
-      const alreadyProcessed = await prisma.processedComment.findUnique({
-        where: { commentId: event.commentId },
-      });
-      if (alreadyProcessed) {
-        continue;
-      }
-
       const account = await prisma.instagramAccount.findUnique({
         where: { instagramId: event.instagramAccountId },
         select: { workspaceId: true },
@@ -114,21 +105,6 @@ export async function POST(request: NextRequest) {
           jobId: `comment_${event.instagramAccountId}_${event.commentId}`,
         }
       );
-
-      // Mark comment as processed to prevent webhook retries from re-queuing.
-      // ProcessedComment is a dedup set: prevents reconciler and webhook retries
-      // from both processing the same comment twice.
-      await prisma.processedComment.upsert({
-        where: { commentId: event.commentId },
-        create: {
-          instagramAccountId: event.instagramAccountId,
-          commentId: event.commentId,
-          source: "WEBHOOK",
-        },
-        update: {
-          source: "WEBHOOK",
-        },
-      });
 
       if (account) {
         await prisma.webhookEvent.update({

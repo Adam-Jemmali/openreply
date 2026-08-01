@@ -254,9 +254,6 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
     // already sent but whose public reply never posted (e.g. it hit a rate
     // limit) must still come back so the public reply can be retried.
     if (existingLog?.status === "SKIPPED_PLAN_LIMIT") continue;
-    if (existingLog?.status === "SKIPPED_DEDUP") continue;
-    if (existingLog?.status === "SKIPPED_RATE_LIMIT") continue;
-    if (existingLog?.status === "SKIPPED_NO_MATCH") continue;
     if (alreadyDmd && (alreadyPublicReplied || !automation.publicReplyEnabled)) {
       continue;
     }
@@ -320,16 +317,12 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
       continue;
     }
 
-    // Ensure a log row exists atomically. Use upsert to prevent race conditions
-    // where two concurrent jobs both try to create. Only (re)set PENDING when the
-    // DM will be attempted, so a prior SENT is never clobbered while retrying
-    // the public reply.
-    if (needsDm) {
-      await prisma.dmLog.upsert({
-        where: {
-          automationId_commentId: { automationId: automation.id, commentId },
-        },
-        create: {
+    // Ensure a log row exists before the public reply leg (which updates it).
+    // Only (re)set PENDING when the DM will actually be attempted, so a prior
+    // SENT is never clobbered while we come back just to retry the public reply.
+    if (!existingLog) {
+      await prisma.dmLog.create({
+        data: {
           workspaceId: automation.workspaceId,
           automationId: automation.id,
           instagramAccountId: automation.instagramAccountId,
@@ -341,34 +334,17 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
           status: "PENDING",
           attempts: job.attemptsMade + 1,
         },
-        update: {
+      });
+    } else if (needsDm) {
+      await prisma.dmLog.update({
+        where: {
+          automationId_commentId: { automationId: automation.id, commentId },
+        },
+        data: {
           status: "PENDING",
           attempts: job.attemptsMade + 1,
           matchedKeyword: matchResult.matchedKeyword,
           errorMessage: null,
-        },
-      });
-    } else if (!existingLog) {
-      // Log doesn't exist but we won't send DM (e.g., keyword didn't match initially
-      // but now we're in a retry path). Still create the log for record-keeping.
-      await prisma.dmLog.upsert({
-        where: {
-          automationId_commentId: { automationId: automation.id, commentId },
-        },
-        create: {
-          workspaceId: automation.workspaceId,
-          automationId: automation.id,
-          instagramAccountId: automation.instagramAccountId,
-          commenterId,
-          commenterName,
-          commentText,
-          commentId,
-          matchedKeyword: matchResult.matchedKeyword,
-          status: "SKIPPED_NO_MATCH",
-          attempts: job.attemptsMade + 1,
-        },
-        update: {
-          matchedKeyword: matchResult.matchedKeyword,
         },
       });
     }
