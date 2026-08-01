@@ -566,6 +566,21 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
       sendFollowPrompt = alreadyFollows !== true;
     }
 
+    // Mark DM as "in progress" BEFORE sending to prevent concurrent jobs from
+    // also sending. This prevents race conditions where multiple jobs query
+    // DmLog concurrently, all see dmSentAt not set, and all try to send.
+    await prisma.dmLog.update({
+      where: {
+        automationId_commentId: {
+          automationId: automation.id,
+          commentId,
+        },
+      },
+      data: {
+        dmSentAt: new Date(),
+      },
+    });
+
     try {
       if (useOpeningDm) {
         const openingText = renderMessageWithTracking({
@@ -671,7 +686,6 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
         },
         data: {
           status: "SENT",
-          dmSentAt: new Date(),
           errorMessage: null,
         },
       });
