@@ -229,11 +229,9 @@ async function sweepCampaign(
       .slice(0, MAX_NEW_PER_SWEEP);
 
     for (const c of fresh) {
-      // No deterministic jobId here: a retained completed/failed job from an
-      // earlier sweep would otherwise be treated as a duplicate and silently
-      // drop this add, so the comment would never be retried. Dedup is handled
-      // above (owner-reply + DmLog guards) and the worker is idempotent
-      // (publicReplySentAt / SENT), so re-processing a comment is safe.
+      // Use deterministic jobId to prevent duplicate queueing from concurrent
+      // reconciler sweeps. If a previous job was removed (after completion),
+      // re-queuing with the same jobId is correct behavior (comment needs retry).
       await queue.add("process-comment", {
         instagramAccountId: account.instagramId,
         commentId: c.id,
@@ -242,6 +240,8 @@ async function sweepCampaign(
         commenterName: c.from?.username,
         mediaId,
         source: "POLLING",
+      }, {
+        jobId: `comment_${account.instagramId}_${c.id}`,
       });
       // Mark comment as processed to coordinate with webhook dedup
       await prisma.processedComment.upsert({
