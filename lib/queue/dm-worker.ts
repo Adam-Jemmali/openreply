@@ -85,10 +85,18 @@ function buildLinkButtons(
   trackedLinks: WorkerTrackedLink[],
   primaryLabel: string | null
 ): { title: string; url: string }[] {
-  return trackedLinks.slice(0, 3).map((link, index) => ({
-    url: buildTrackedUrl(link.slug),
-    title: (index === 0 ? primaryLabel : link.label) || link.label || "Open link",
-  }));
+  return trackedLinks.slice(0, 3).map((link, index) => {
+    // For first button, use primaryLabel if provided and non-empty; otherwise use link label
+    const buttonTitle =
+      index === 0 && primaryLabel?.trim()
+        ? primaryLabel
+        : link.label?.trim() || "Open link";
+
+    return {
+      url: buildTrackedUrl(link.slug),
+      title: buttonTitle,
+    };
+  });
 }
 
 /**
