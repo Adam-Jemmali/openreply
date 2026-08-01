@@ -79,6 +79,37 @@ export async function POST(request: NextRequest) {
   });
 
   try {
+    // Log webhook structure to debug what's being received
+    console.log(
+      `[Webhook] Received webhook: object=${
+        typeof payload === "object" && payload ? (payload as any).object : "unknown"
+      }, entries=${
+        typeof payload === "object" && payload && "entry" in payload
+          ? (payload as any).entry?.length ?? 0
+          : 0
+      }`
+    );
+
+    if (typeof payload === "object" && payload && "entry" in payload) {
+      for (const entry of (payload as any).entry ?? []) {
+        if (entry.messaging?.length > 0) {
+          console.log(
+            `[Webhook] Entry has messaging array with ${entry.messaging.length} items: ${entry.messaging
+              .map(
+                (m: any) =>
+                  Object.keys(m).filter((k) => !["sender", "recipient"].includes(k))
+              )
+              .join(", ")}`
+          );
+        }
+        if (entry.changes?.length > 0) {
+          console.log(
+            `[Webhook] Entry has changes array with ${entry.changes.length} items`
+          );
+        }
+      }
+    }
+
     const commentEvents = parseCommentEvents(
       payload as Parameters<typeof parseCommentEvents>[0]
     );
