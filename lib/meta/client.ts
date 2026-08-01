@@ -218,6 +218,15 @@ export async function sendDirectMessageWithButton(
   buttonTitle: string,
   payload: string
 ): Promise<{ recipient_id: string; message_id: string }> {
+  // Instagram DMs don't support postback buttons (only Messenger does).
+  // Use URL button that calls our API endpoint instead.
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const buttonUrl = `${baseUrl}/api/button-tap?payload=${encodeURIComponent(
+    payload
+  )}&userId=${encodeURIComponent(userId)}&accountId=${encodeURIComponent(
+    instagramAccountId
+  )}`;
+
   const response = await fetch(
     `${instagramGraphBase()}/${instagramAccountId}/messages`,
     {
@@ -235,7 +244,7 @@ export async function sendDirectMessageWithButton(
               template_type: "button",
               text: text.slice(0, 640),
               buttons: [
-                { type: "postback", title: buttonTitle.slice(0, 20), payload },
+                { type: "web_url", title: buttonTitle.slice(0, 20), url: buttonUrl },
               ],
             },
           },
@@ -745,7 +754,6 @@ export async function subscribeInstagramAccountToWebhooks(
   const fields = [
     "comments", // Comment events on posts
     "messages", // DM messages and read receipts
-    "messaging_postbacks", // Button taps in opening DMs
   ];
 
   console.log(
