@@ -128,7 +128,8 @@ async function sendRevealDirectMessage(
   commenterName: string | null,
   context: string
 ): Promise<void> {
-  if (automation.trackedLinks.length === 0) {
+  // If no tracked links: send message with inline links only
+  if (!automation.trackedLinks || automation.trackedLinks.length === 0) {
     await sendDirectMessage(
       accessToken,
       automation.instagramAccount.instagramId,
@@ -136,7 +137,7 @@ async function sendRevealDirectMessage(
       renderMessageWithTracking({
         message: automation.dmMessage,
         commenterName,
-        trackedLinks: automation.trackedLinks,
+        trackedLinks: [],
       })
     );
     return;
@@ -152,6 +153,21 @@ async function sendRevealDirectMessage(
     automation.trackedLinks,
     automation.linkButtonLabel
   );
+
+  // If no buttons were built (shouldn't happen after above checks), fall back to inline
+  if (!buttons || buttons.length === 0) {
+    await sendDirectMessage(
+      accessToken,
+      automation.instagramAccount.instagramId,
+      userId,
+      renderMessageWithTracking({
+        message: automation.dmMessage,
+        commenterName,
+        trackedLinks: automation.trackedLinks,
+      })
+    );
+    return;
+  }
 
   try {
     await sendDirectMessageWithLinkButton(
@@ -835,6 +851,9 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
   }
 
   try {
+    console.log(
+      `[DM Worker] Postback processing for automation ${automation.id}: trackedLinks=${automation.trackedLinks?.length ?? 0}, dmMessage="${automation.dmMessage}", linkButtonLabel="${automation.linkButtonLabel}"`
+    );
     await sendRevealDirectMessage(
       accessToken,
       automation,
@@ -842,6 +861,7 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
       commenterName,
       "postback"
     );
+    console.log(`[DM Worker] Postback reveal sent successfully`);
     // Optional appreciation follow-up: once the link has been delivered, send a
     // short thank-you. It is scheduled as its own delayed job so it can go out
     // some minutes later (followUpDelayMinutes) rather than immediately. The
