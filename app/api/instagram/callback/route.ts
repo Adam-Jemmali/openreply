@@ -71,16 +71,26 @@ export async function GET(request: NextRequest) {
 
     let webhookSubscribed = false;
     try {
+      console.log(
+        `[Instagram Callback] Attempting webhook subscription for ${instagramId}`
+      );
       const subscription = await subscribeInstagramAccountToWebhooks(
         instagramId,
         longLivedToken
       );
       webhookSubscribed = Boolean(subscription.success);
-    } catch (subscriptionError) {
-      console.warn(
-        "[Instagram Callback] Webhook subscription failed:",
-        subscriptionError
+      console.log(
+        `[Instagram Callback] Webhook subscription result: success=${webhookSubscribed}`
       );
+    } catch (subscriptionError) {
+      const errorMsg =
+        subscriptionError instanceof Error
+          ? subscriptionError.message
+          : String(subscriptionError);
+      console.error(
+        `[Instagram Callback] Webhook subscription FAILED: ${errorMsg}`
+      );
+      webhookSubscribed = false;
     }
 
     await prisma.instagramAccount.upsert({

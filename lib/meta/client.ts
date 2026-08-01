@@ -741,25 +741,48 @@ export async function subscribeInstagramAccountToWebhooks(
   instagramAccountId: string,
   accessToken: string
 ): Promise<{ success: boolean }> {
-  const response = await fetch(
-    `${instagramGraphBase()}/${instagramAccountId}/subscribed_apps`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        subscribed_fields: [
-          "comments", // Comment events on posts
-          "messages", // DM messages and read receipts
-          "messaging_postbacks", // Button taps in opening DMs
-        ],
-      }),
-    }
+  const subscribeUrl = `${instagramGraphBase()}/${instagramAccountId}/subscribed_apps`;
+  const fields = [
+    "comments", // Comment events on posts
+    "messages", // DM messages and read receipts
+    "messaging_postbacks", // Button taps in opening DMs
+  ];
+
+  console.log(
+    `[Meta] Subscribing to webhooks for account ${instagramAccountId}: fields=${fields.join(
+      ", "
+    )}`
   );
 
-  return handleResponse(response);
+  const response = await fetch(subscribeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      subscribed_fields: fields,
+    }),
+  });
+
+  const responseText = await response.text();
+  console.log(
+    `[Meta] Webhook subscription response (status=${response.status}): ${responseText}`
+  );
+
+  if (!response.ok) {
+    console.error(
+      `[Meta] Webhook subscription failed: ${response.status} ${responseText}`
+    );
+    throw new Error(
+      `Webhook subscription failed: ${response.status} ${responseText}`
+    );
+  }
+
+  const result = JSON.parse(responseText);
+  console.log(`[Meta] Webhook subscription result:`, result);
+
+  return { success: Boolean(result.success) };
 }
 
 export async function debugToken(inputToken: string, accessToken: string) {
