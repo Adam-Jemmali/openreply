@@ -745,12 +745,20 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
 async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
   const { instagramAccountId, userId, payload, fallback } = job.data;
 
+  console.log(
+    `[DM Worker] Postback received: payload=${payload}, userId=${userId}, instagramAccountId=${instagramAccountId}`
+  );
+
   const isFollowCheck = payload.startsWith("followcheck:");
-  if (!isFollowCheck && !payload.startsWith("reveal:")) return;
+  if (!isFollowCheck && !payload.startsWith("reveal:")) {
+    console.log(`[DM Worker] Invalid payload format: ${payload}`);
+    return;
+  }
   const automationId = payload.slice(
     isFollowCheck ? "followcheck:".length : "reveal:".length
   );
 
+  console.log(`[DM Worker] Looking up automation: ${automationId}`);
   const automation = await prisma.automation.findFirst({
     where: { id: automationId, isActive: true },
     include: {
@@ -763,13 +771,26 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
     },
   });
 
-  if (
-    !automation ||
-    automation.instagramAccount.instagramId !== instagramAccountId ||
-    !automation.instagramAccount.accessToken
-  ) {
+  if (!automation) {
+    console.log(`[DM Worker] Automation not found: ${automationId}`);
     return;
   }
+
+  if (automation.instagramAccount.instagramId !== instagramAccountId) {
+    console.log(
+      `[DM Worker] Account mismatch: expected ${automation.instagramAccount.instagramId}, got ${instagramAccountId}`
+    );
+    return;
+  }
+
+  if (!automation.instagramAccount.accessToken) {
+    console.log(`[DM Worker] No access token for account`);
+    return;
+  }
+
+  console.log(
+    `[DM Worker] Automation found: ${automation.name}, trackedLinks=${automation.trackedLinks?.length}`
+  );
 
   // Duplicate sends are enabled: every button tap re-sends the reveal
   // instead of only firing once per person.
