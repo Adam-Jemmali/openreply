@@ -622,7 +622,7 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
         await sendPrivateReplyWithButton(
           accessToken,
           automation.instagramAccount.instagramId,
-          commentId,
+          commenterId,
           openingText,
           automation.openingDmButtonLabel as string,
           automation.requireFollow
@@ -639,7 +639,7 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
         await sendPrivateReplyWithButton(
           accessToken,
           automation.instagramAccount.instagramId,
-          commentId,
+          commenterId,
           promptText,
           automation.followPromptButtonLabel || "i'm following",
           `followcheck:${automation.id}`
