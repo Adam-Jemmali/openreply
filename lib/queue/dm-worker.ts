@@ -246,7 +246,9 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
       },
     });
 
-    const alreadyDmd = existingLog?.status === "SENT";
+    // DM is considered sent if status is SENT OR if dmSentAt is set
+    // (dmSentAt indicates the DM was delivered; a failed status update shouldn't trigger resend)
+    const alreadyDmd = existingLog?.status === "SENT" || Boolean(existingLog?.dmSentAt);
     const alreadyPublicReplied = Boolean(existingLog?.publicReplySentAt);
     const needsDm = !alreadyDmd;
 
