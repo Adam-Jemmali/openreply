@@ -619,10 +619,18 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
           commenterName,
           trackedLinks: [],
         });
-        await sendPrivateReplyWithButton(
+        // Send text-only private reply to comment to initiate conversation
+        await sendPrivateReply(
           accessToken,
           automation.instagramAccount.instagramId,
           commentId,
+          openingText
+        );
+        // Send button message to user to establish postback interaction
+        await sendDirectMessageWithButton(
+          accessToken,
+          automation.instagramAccount.instagramId,
+          commenterId,
           openingText,
           automation.openingDmButtonLabel as string,
           automation.requireFollow
@@ -636,10 +644,17 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
             "quick favor before i send your link. i don't make any money from this, it's free. if you want to support me, just don't unfollow after, and star the repo on github if it helps you. tap the button once you're following and i'll send it over",
           commenterName,
         });
-        await sendPrivateReplyWithButton(
+        // Send text-only private reply first, then button message to user
+        await sendPrivateReply(
           accessToken,
           automation.instagramAccount.instagramId,
           commentId,
+          promptText
+        );
+        await sendDirectMessageWithButton(
+          accessToken,
+          automation.instagramAccount.instagramId,
+          commenterId,
           promptText,
           automation.followPromptButtonLabel || "i'm following",
           `followcheck:${automation.id}`
