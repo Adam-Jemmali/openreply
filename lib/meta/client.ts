@@ -750,7 +750,11 @@ export async function subscribeInstagramAccountToWebhooks(
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
-        subscribed_fields: ["comments", "messages"],
+        subscribed_fields: [
+          "comments", // Comment events on posts
+          "messages", // DM messages and read receipts
+          "messaging_postbacks", // Button taps in opening DMs
+        ],
       }),
     }
   );
