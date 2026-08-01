@@ -619,10 +619,11 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
           commenterName,
           trackedLinks: [],
         });
-        await sendPrivateReplyWithButton(
+        // Send button as DM to user (not private reply) so postback webhooks work
+        await sendDirectMessageWithButton(
           accessToken,
           automation.instagramAccount.instagramId,
-          commentId,
+          commenterId,
           openingText,
           automation.openingDmButtonLabel as string,
           automation.requireFollow
@@ -636,10 +637,11 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
             "quick favor before i send your link. i don't make any money from this, it's free. if you want to support me, just don't unfollow after, and star the repo on github if it helps you. tap the button once you're following and i'll send it over",
           commenterName,
         });
-        await sendPrivateReplyWithButton(
+        // Send button as DM to user (not private reply) so postback webhooks work
+        await sendDirectMessageWithButton(
           accessToken,
           automation.instagramAccount.instagramId,
-          commentId,
+          commenterId,
           promptText,
           automation.followPromptButtonLabel || "i'm following",
           `followcheck:${automation.id}`
