@@ -143,7 +143,16 @@ export async function POST(request: NextRequest) {
       payload as Parameters<typeof parsePostbackEvents>[0]
     );
 
+    if (postbackEvents.length > 0) {
+      console.log(
+        `[Webhook] Received ${postbackEvents.length} postback event(s):`
+      );
+    }
+
     for (const event of postbackEvents) {
+      console.log(
+        `[Webhook] Queuing postback: accountId=${event.instagramAccountId}, userId=${event.userId}, payload=${event.payload}`
+      );
       await queue.add(
         POSTBACK_JOB_NAME,
         {
@@ -160,6 +169,7 @@ export async function POST(request: NextRequest) {
           ).replace(/:/g, "_")}`,
         }
       );
+      console.log(`[Webhook] Postback queued successfully`);
     }
 
     // Inbound DMs → keyword-triggered autoreply.
