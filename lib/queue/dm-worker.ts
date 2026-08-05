@@ -619,11 +619,12 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
           commenterName,
           trackedLinks: [],
         });
-        // Send button as DM to user (not private reply) so postback webhooks work
-        await sendDirectMessageWithButton(
+        // Send as private reply to comment (not direct message) to avoid messaging window restrictions.
+        // URL buttons in the reply will call our /api/button-tap endpoint when tapped.
+        await sendPrivateReplyWithButton(
           accessToken,
           automation.instagramAccount.instagramId,
-          commenterId,
+          commentId,
           openingText,
           automation.openingDmButtonLabel as string,
           automation.requireFollow
