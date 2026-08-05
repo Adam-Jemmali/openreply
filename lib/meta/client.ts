@@ -754,6 +754,7 @@ export async function subscribeInstagramAccountToWebhooks(
   const fields = [
     "comments", // Comment events on posts
     "messages", // DM messages and read receipts
+    "messaging_postbacks", // Required to keep messaging window open for DM sending
   ];
 
   console.log(

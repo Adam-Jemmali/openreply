@@ -133,7 +133,7 @@ export default function LogsPage() {
         {/* Six columns don't fit a phone; the table keeps its width and scrolls
             horizontally inside the panel rather than crushing every cell. */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
+          <table className="w-full min-w-190 text-sm">
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">Commenter</th>
@@ -171,7 +171,7 @@ export default function LogsPage() {
                         @{log.commenterName ?? log.commenterId.slice(0, 8)}
                       </span>
                     </td>
-                    <td className="px-4 py-4 max-w-[200px] sm:px-6">
+                    <td className="px-4 py-4 max-w-50 sm:px-6">
                       <span className="text-muted truncate block">{log.commentText}</span>
                     </td>
                     <td className="px-4 py-4 sm:px-6">
